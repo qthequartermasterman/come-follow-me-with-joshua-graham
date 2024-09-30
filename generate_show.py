@@ -1,21 +1,22 @@
-import re
-import warnings
-from elevenlabs import VoiceSettings
-from elevenlabs.client import ElevenLabs
+import functools
+import hashlib
+import itertools
+import logging
 import pathlib
-import tqdm
-import pydantic
-import magentic
-from typing_extensions import Callable, ParamSpec, TypeVar, Self
+import re
+import shutil
+import warnings
+
 import bs4
 import httpx
-import hashlib
-import logging
-import itertools
-import pydub
+import magentic
 import moviepy.editor as mpy
-import shutil
-import os
+import pydantic
+import pydub
+import tqdm
+from elevenlabs import VoiceSettings
+from elevenlabs.client import ElevenLabs
+from typing_extensions import Callable, ParamSpec, Self, TypeVar
 
 # All the proper names in the Book of Mormon should be replaced with the phoneme tags
 
@@ -90,9 +91,17 @@ NAMES = {
     "Amulonites ": '<phoneme alphabet="ipa" ph="ˈæm.juˌlɑnˌaɪts">Amulonites</phoneme> ',
     "Anathoth ": '<phoneme alphabet="ipa" ph="ˈæn.əˌtɑθ">Anathoth</phoneme> ',
     "Angola ": '<phoneme alphabet="ipa" ph="ænˈgoʊ.lʌ">Angola</phoneme> ',
-    "Ani-Anti ": '<phoneme alphabet="ipa" ph="ˈæn.aɪ">Ani</phoneme> <phoneme alphabet="ipa" ph="ˈæn.ti">Anti</phoneme> ',
-    "Anti-Nephi-Lehi ": '<phoneme alphabet="ipa" ph="ˈæn.ti">Anti</phoneme> <phoneme alphabet="ipa" ph="ˈniː.faɪ">Nephi</phoneme> <phoneme alphabet="ipa" ph="ˈliː.haɪ">Lehi</phoneme> ',
-    "Anti-Nephi-Lehies ": '<phoneme alphabet="ipa" ph="ˈæn.ti">Anti</phoneme> <phoneme alphabet="ipa" ph="ˈniː.faɪ">Nephi</phoneme> <phoneme alphabet="ipa" ph="ˈliː.haɪz">Lehies</phoneme> ',
+    "Ani-Anti ": (
+        '<phoneme alphabet="ipa" ph="ˈæn.aɪ">Ani</phoneme> <phoneme alphabet="ipa" ph="ˈæn.ti">Anti</phoneme> '
+    ),
+    "Anti-Nephi-Lehi ": (
+        '<phoneme alphabet="ipa" ph="ˈæn.ti">Anti</phoneme> <phoneme alphabet="ipa" ph="ˈniː.faɪ">Nephi</phoneme>'
+        ' <phoneme alphabet="ipa" ph="ˈliː.haɪ">Lehi</phoneme> '
+    ),
+    "Anti-Nephi-Lehies ": (
+        '<phoneme alphabet="ipa" ph="ˈæn.ti">Anti</phoneme> <phoneme alphabet="ipa" ph="ˈniː.faɪ">Nephi</phoneme>'
+        ' <phoneme alphabet="ipa" ph="ˈliː.haɪz">Lehies</phoneme> '
+    ),
     "Antiomno ": '<phoneme alphabet="ipa" ph="ˈæn.tiˈɑm.noʊ">Antiomno</phoneme> ',
     "Antion ": '<phoneme alphabet="ipa" ph="ˈæn.tiˈɑn">Antion</phoneme> ',
     "Antionah ": '<phoneme alphabet="ipa" ph="ˈæn.tiˈɑn.ə">Antionah</phoneme> ',
@@ -397,11 +406,19 @@ VOICE_SETTINGS = VoiceSettings(
 
 
 EPISODE_OUTLINE_GENERATION_SYSTEM_PROMPT = """\
-You are Joshua Graham, the Burned Man, of Fallout: New Vegas fame. You have recently been called as your ward Sunday School teacher teaching the Book of Mormon using the Come, Follow Me curriculum. Using the attached document, please outline a podcast episode based on this week's curriculum ({curriculum_string}). 
+You are Joshua Graham, the Burned Man, of Fallout: New Vegas fame. You have recently been called as your ward Sunday
+School teacher teaching the Book of Mormon using the Come, Follow Me curriculum. Using the attached document, please
+outline a podcast episode based on this week's curriculum ({curriculum_string}). 
 
-Each segment should be about 4-5 minutes (~800-1000 words) long, including some scriptural references from the assigned curriculum and some other connection, at least. Make as many relevant references as possible to provide commentary on. The content should be spiritually uplifting and doctrinally sound according to the official positions of the Church of Jesus Christ of Latter-day Saints.
+Each segment should be about 4-5 minutes (~800-1000 words) long, including some scriptural references from the assigned
+curriculum and some other connection, at least. Make as many relevant references as possible to provide commentary on.
+The content should be spiritually uplifting and doctrinally sound according to the official positions of the Church of
+Jesus Christ of Latter-day Saints.
 
-Make sure to make the outline feels like it was written by you, Joshua Graham. You may include personal anecdotes or insights. Recall that Joshua Graham is well trainined in languages, so feel free to make language connections. The content should not just be generic. Please also dive into the scriptures wherever possible, providing doctrinally-sound commentary.
+Make sure to make the outline feels like it was written by you, Joshua Graham. You may include personal anecdotes or 
+insights. Recall that Joshua Graham is well trainined in languages, so feel free to make language connections. The 
+content should not just be generic. Please also dive into the scriptures wherever possible, providing 
+doctrinally-sound commentary.
 """
 assert EPISODE_OUTLINE_GENERATION_SYSTEM_PROMPT.strip()
 
@@ -416,25 +433,45 @@ This is the episode outline:
 {episode_outline}
 ```
 
-Now that we have an episode outline written by you, Joshua Graham, we must flesh it out to be a podcast script. You may include personal anecdotes or insights. The content should not just be generic. Please also dive into the scriptures wherever possible, providing doctrinally-sound commentary. Feel free to include spiritual insights based on linguistics or scholarly commentary, so long as it is doctrionally sound according to the official positions of the Church of Jesus Christ of Latter-day Saints. Feel free to use the words of modern prophets and apostles from General Conference. In all things you say, make sure to testify of Jesus Christ and invite all to come unto Him.
+Now that we have an episode outline written by you, Joshua Graham, we must flesh it out to be a podcast script. You may
+include personal anecdotes or insights. The content should not just be generic. Please also dive into the scriptures 
+wherever possible, providing doctrinally-sound commentary. Feel free to include spiritual insights based on linguistics
+or scholarly commentary, so long as it is doctrionally sound according to the official positions of the Church of Jesus
+Christ of Latter-day Saints. Feel free to use the words of modern prophets and apostles from General Conference. In all
+things you say, make sure to testify of Jesus Christ and invite all to come unto Him.
 
-Each segment should be about 4-5 minutes (~800-1000 words) long. Flesh out each segment to the specified length. Each one should include some scriptural references from the assigned curriculum and at least three other connections, perhaps from the scriptures or from General conference, or linguistically, or from your own life. Feel free to add content that wasn't in the outline. The content should be spiritually uplifting and doctrinally sound. Always cite your sources.
+Each segment should be about 4-5 minutes (~800-1000 words) long. Flesh out each segment to the specified length. Each 
+one should include some scriptural references from the assigned curriculum and at least three other connections, 
+perhaps from the scriptures or from General conference, or linguistically, or from your own life. Feel free to add 
+content that wasn't in the outline. The content should be spiritually uplifting and doctrinally sound. Always cite 
+your sources.
 
-Feel free to break down a passage of scripture verse-by-verse or even line-by-line. The deeper and more profound/uplifting your message, the more engaged listeners will be, which will better accomplish your goal to invite them to come unto Christ. **Make sure to make this personal, exactly how Joshua Graham would comment on the scriptures, testifying of Jesus**.
+Feel free to break down a passage of scripture verse-by-verse or even line-by-line. The deeper and more 
+profound/uplifting your message, the more engaged listeners will be, which will better accomplish your goal to invite
+them to come unto Christ. **Make sure to make this personal, exactly how Joshua Graham would comment on the scriptures,
+testifying of Jesus**.
 
-The script should be fully fleshed out with exactly what the voice actor will say. This should include all text to be read by the voice actor in each segment. Strive to be thorough in your spiritual commentary and insights.
+The script should be fully fleshed out with exactly what the voice actor will say. This should include all text to be
+read by the voice actor in each segment. Strive to be thorough in your spiritual commentary and insights.
 
 Do not include the title of the segments in the script.
 
-Do not include any text that isn't to be spoken in the episode (it will be read by the voice actor exactly as written). You are permitted to use `<break time='1s'/>` to designate a break of 1s (or change 1s to any other brief time). Any text written in square brackets will be omitted before the voice actor sees the script, so do not include any text other than that which should be spoken.
+Do not include any text that isn't to be spoken in the episode (it will be read by the voice actor exactly as written).
+You are permitted to use `<break time='1s'/>` to designate a break of 1s (or change 1s to any other brief time). Any 
+text written in square brackets will be omitted before the voice actor sees the script, so do not include any text other
+than that which should be spoken.
 """
 
 EPISODE_SUMMARY_GENERATION_PROMPT = """\
-You are Joshua Graham, the Burned Man, of Fallout: New Vegas fame. You have recently been called as your ward Sunday School teacher teaching the Book of Mormon using the Come, Follow Me curriculum.
+You are Joshua Graham, the Burned Man, of Fallout: New Vegas fame. You have recently been called as your ward Sunday
+School teacher teaching the Book of Mormon using the Come, Follow Me curriculum.
 
-You have written a podcast episode based on this week's curriculum. The episode is entitled "{episode.title}". Please generate a short, but powerful YouTube video description for this episode that will optimize for search engines and attract listeners to your podcast. 
+You have written a podcast episode based on this week's curriculum. The episode is entitled "{episode.title}". Please
+generate a short, but powerful YouTube video description for this episode that will optimize for search engines and 
+attract listeners to your podcast. 
 
-The description should be about 100-200 words long and should include keywords that will help people find your podcast. Make sure to include a call to action to subscribe to your podcast and to like the video.
+The description should be about 100-200 words long and should include keywords that will help people find your podcast.
+Make sure to include a call to action to subscribe to your podcast and to like the video.
 
 This is the episode outline:
 ```
@@ -479,6 +516,7 @@ def add_pronunciation_helpers(text: str) -> str:
 
     Returns:
         The cleaned text.
+
     """
     for punctuation in (" ", ".", ",", "'", ":", "!", "?", "’s", "'s"):
         for name, phoneme in itertools.chain(NAMES.items(), ITE_NAMES.items()):
@@ -516,6 +554,7 @@ def generate_audio_file_from_text(text: str, path: pathlib.Path) -> None:
 
     Raises:
         ValueError: If the path does not have a .mp3 extension.
+
     """
     if path.suffix != ".mp3":
         raise ValueError(f"Audio file must be in mp3 format. Got {path}")
@@ -548,6 +587,7 @@ def milliseconds_to_timestamps(milliseconds: int) -> str:
 
     Returns:
         The timestamp string in the format "mm:ss".
+
     """
     seconds, _ = divmod(milliseconds, 1000)
     minutes, seconds = divmod(seconds, 60)
@@ -558,10 +598,19 @@ class Segment(pydantic.BaseModel):
     """A segment of an episode outline."""
 
     title: str = pydantic.Field(
-        description="The title of the segment providing insight about the content of the segment. This is shown in the episode outline as a chapter heading."
+        description=(
+            "The title of the segment providing insight about the content of the segment. This is shown in"
+            " the episode outline as a chapter heading."
+        )
     )
     text: str = pydantic.Field(
-        description="The text of the segment, focused on some passage(s) of scripture, along with commentary. The commentary may be personal insights, linguistic insights, scholarly commentary, or especially connections to General Conference addresses. The text must be doctrinally sound according to the official positions of the Church of Jesus Christ of Latter-day Saints. The text should be spiritually uplifting and testify of Jesus Christ. Each segment should be about 4-5 minutes (~800-1000 words) long."
+        description=(
+            "The text of the segment, focused on some passage(s) of scripture, along with commentary. The"
+            " commentary may be personal insights, linguistic insights, scholarly commentary, or especially"
+            " connections to General Conference addresses. The text must be doctrinally sound according to the"
+            " official positions of the Church of Jesus Christ of Latter-day Saints. The text should be spiritually"
+            " uplifting and testify of Jesus Christ. Each segment should be about 4-5 minutes (~800-1000 words) long."
+        )
     )
     _normalize_segment = pydantic.field_validator("text")(add_pronunciation_helpers)
 
@@ -570,21 +619,58 @@ class EpisodeOutline(pydantic.BaseModel):
     """An outline for a podcast episode."""
 
     title: str = pydantic.Field(
-        description="The title of the episode providing insight about the content of the episode, but is still succinct and catchy to attract listeners."
+        description=(
+            "The title of the episode providing insight about the content of the episode, but is still succinct and"
+            " catchy to attract listeners."
+        )
     )
     introduction: str = pydantic.Field(
-        description="The introduction segment of the episode which provides an insightful and spiritual opening, testifying of Jesus Christ."
+        description=(
+            "The introduction segment of the episode which provides an insightful and spiritual opening, testifying"
+            " of Jesus Christ."
+        )
     )
     segments: list[Segment] = pydantic.Field(
-        description="A list of the text of each content segment, each one focused on some passage(s) of scripture, along with commentary. The commentary may be personal insights, linguistic insights, scholarly commentary, or especially connections to General Conference addresses. Each segment must be doctrinally sound according to the official positions of the Church of Jesus Christ of Latter-day Saints. Each segment should be spiritually uplifting and testify of Jesus Christ. There should be between 4 to 6 segments."
+        description=(
+            "A list of the text of each content segment, each one focused on some passage(s) of scripture, along with"
+            " commentary. The commentary may be personal insights, linguistic insights, scholarly commentary, or"
+            " especially connections to General Conference addresses. Each segment must be doctrinally sound according"
+            " to the official positions of the Church of Jesus Christ of Latter-day Saints. Each segment should be"
+            " spiritually uplifting and testify of Jesus Christ. There should be between 4 to 6 segments."
+        )
     )
     closing: str = pydantic.Field(
-        description="The profound closing statement of the episode. It might provide a summary of the content in the episode, but it must contain major takeaways and a call to action. Encourage users to repent in some way relevant to the content of the episode and that will strengthen their relationship with Jesus Christ."
+        description=(
+            "The profound closing statement of the episode. It might provide a summary of the content in the episode,"
+            " but it must contain major takeaways and a call to action. Encourage users to repent in some way relevant"
+            " to the content of the episode and that will strengthen their relationship with Jesus Christ."
+        )
     )
 
     @classmethod
     def cache_pydantic_model(cls: Self, func: Callable[P, Self]) -> Callable[P, Self]:
+        """Cache the output of a function that returns a pydantic model.
+
+        The cached model will be saved to a file in the .cache directory with the name of the class and a hash of the
+        arguments.
+
+        Args:
+            func: The function to cache the output of.
+
+        Returns:
+            The wrapped function that caches the output.
+
+        """
+
+        @functools.wraps(func)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> Self:
+            """Wrap the function to cache the output.
+
+            Args:
+                *args: The arguments to the function.
+                **kwargs: The keyword arguments to the function.
+
+            """
             args_hash = hashlib.sha256((str(args) + str(kwargs)).encode("utf-8")).hexdigest()[:16]
             path: pathlib.Path = pathlib.Path(".cache") / f"{cls.__name__}-{args_hash}.json"
             if path.exists():
@@ -606,13 +692,23 @@ class Episode(EpisodeOutline):
 
     @property
     def segment_files(self) -> list[tuple[str, str]]:
+        """Get the title of each segment along with the filename to save the audio to."""
         return [(segment.title, SEGMENT_FILENAME_TEMPLATE.format(i=i)) for i, segment in enumerate(self.segments)]
 
     @property
     def segment_text_files(self) -> list[tuple[str, str]]:
+        """Get the text of each segment along with the filename to save the audio to."""
         return [(segment.text, SEGMENT_FILENAME_TEMPLATE.format(i=i)) for i, segment in enumerate(self.segments)]
 
     def generate_audio_files(self, output_dir: pathlib.Path) -> None:
+        """Generate the audio files for the episode.
+
+        Will not generate the audio files if they already exist.
+
+        Args:
+            output_dir: The directory to save the audio files to.
+
+        """
         output_dir.mkdir(exist_ok=True)
 
         text_files = (
@@ -626,6 +722,17 @@ class Episode(EpisodeOutline):
         self.composite_audio_files(output_dir)
 
     def create_intro_clip_with_fades(self, output_dir: pathlib.Path) -> None:
+        """Create the intro clip with fades.
+
+        Will not create the intro clip if it already exists.
+
+        Args:
+            output_dir: The directory to save the intro clip to.
+
+        Raises:
+            ValueError: If the introduction or music clip do not exist.
+
+        """
         final_file = output_dir / INTRO_WITH_FADE_FILENAME
         if final_file.exists():
             logging.info("Intro clip already exists. Skipping creation.")
@@ -667,6 +774,17 @@ class Episode(EpisodeOutline):
         final_fade_clip.export(final_file, format="mp3")
 
     def create_outro_clip_with_fades(self, output_dir: pathlib.Path) -> None:
+        """Create the outro clip with fades.
+
+        Will not create the outro clip if it already exists.
+
+        Args:
+            output_dir: The directory to save the outro clip to.
+
+        Raises:
+            ValueError: If the closing statement or music clip do not exist.
+
+        """
         final_file = output_dir / OUTRO_WITH_FADE_FILENAME
 
         if final_file.exists():
@@ -702,6 +820,18 @@ class Episode(EpisodeOutline):
         outro_audio.export(final_file, format="mp3")
 
     def composite_audio_files(self, output_dir: pathlib.Path) -> None:
+        """Composite the audio files into a single audio file.
+
+        Will use the cached composite audio file if it already exists.
+
+        Args:
+            output_dir: The directory to save the composite audio file to.
+
+        Raises:
+            ValueError: If the intro or outro clips do not exist.
+            ValueError: If any of the segment clips do not exist.
+
+        """
         logging.info("Compositing audio files")
         composite_file = output_dir / COMPOSITE_FILENAME
         if composite_file.exists():
@@ -741,6 +871,18 @@ class Episode(EpisodeOutline):
             )
 
     def save_video(self, output_dir: pathlib.Path, lesson_reference: str) -> None:
+        """Save the video for the episode.
+
+        Will not create the video if it already exists.
+
+        Args:
+            output_dir: The directory to save the video to.
+            lesson_reference: The reference for the lesson.
+
+        Raises:
+            ValueError: If the composite audio file does not exist.
+
+        """
         logging.info("Creating video")
         final_video = output_dir / FINAL_VIDEO_FILENAME
         if final_video.exists():
@@ -786,7 +928,17 @@ class Episode(EpisodeOutline):
     magentic.UserMessage(f"This is Joshua Graham's background\n\n{JOSHUA_GRAHAM_BACKGROUND_TEXT}"),
     magentic.UserMessage("This is the Come, Follow Me curriculum\n\n {curriculum_text}"),
 )
-def generate_episode_outline(curriculum_string: str, curriculum_text: str) -> EpisodeOutline: ...
+def generate_episode_outline(curriculum_string: str, curriculum_text: str) -> EpisodeOutline:
+    """Generate an episode outline from a curriculum.
+
+    Args:
+        curriculum_string: The title of the curriculum.
+        curriculum_text: The text of the curriculum.
+
+    Returns:
+        The generated episode outline.
+
+    """
 
 
 @Episode.cache_pydantic_model
@@ -796,14 +948,34 @@ def generate_episode_outline(curriculum_string: str, curriculum_text: str) -> Ep
     magentic.UserMessage("This is the Come, Follow Me curriculum\n\n {curriculum_text}"),
     magentic.UserMessage(EPISODE_FLESH_OUT_GENERATION_PROMPT),
 )
-def generate_episode(curriculum_string: str, curriculum_text: str, episode_outline: EpisodeOutline) -> Episode: ...
+def generate_episode(curriculum_string: str, curriculum_text: str, episode_outline: EpisodeOutline) -> Episode:
+    """Generate a full podcast episode from an episode outline.
+
+    Args:
+        curriculum_string: The title of the curriculum.
+        curriculum_text: The text of the curriculum.
+        episode_outline: The episode outline to generate the episode from.
+
+    Returns:
+        The generated episode.
+
+    """
 
 
 @magentic.chatprompt(
     magentic.SystemMessage(EPISODE_SUMMARY_GENERATION_PROMPT),
     magentic.UserMessage("Please write the YouTube video description for the episode {episode.title}"),
 )
-def generate_video_description(episode: Episode) -> str: ...
+def generate_video_description(episode: Episode) -> str:
+    """Generate a video description for a podcast episode.
+
+    Args:
+        episode: The episode to generate the description for.
+
+    Returns:
+        The video description.
+
+    """
 
 
 if __name__ == "__main__":
