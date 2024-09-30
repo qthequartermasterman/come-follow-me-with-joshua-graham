@@ -640,7 +640,8 @@ class Segment(pydantic.BaseModel):
     title: str = pydantic.Field(
         description=(
             "The title of the segment providing insight about the content of the segment. This is shown in"
-            " the episode outline as a chapter heading."
+            " the episode outline as a chapter heading. Do not include the scripture reference in the title. This must"
+            " be less than 40 characters long."
         )
     )
     text: str = pydantic.Field(
@@ -1066,7 +1067,7 @@ if __name__ == "__main__":
 
     logging.info("Generating video description")
     video_description = generate_video_description(episode=episode)
-    
+
     if (timestamps := (output_dir / TIMESTAMPS_FILENAME)).exists():
         video_description += f"\n\nTimestamps:\n{timestamps.read_text()}"
 
