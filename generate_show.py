@@ -473,6 +473,43 @@ attract listeners to your podcast.
 The description should be about 100-200 words long and should include keywords that will help people find your podcast.
 Make sure to include a call to action to subscribe to your podcast and to like the video.
 
+This is a summary from a past episode for an example:
+```
+In this powerful episode of "Come, Follow Me with Joshua Graham," we delve into the cataclysmic and transformative 
+events found in 3 Nephi 8-11. These chapters recount the great destruction and three days of darkness that engulfed 
+the Nephites before the miraculous appearance of Jesus Christ. Through scripture, personal reflections, and insightful 
+commentary, we explore how even in the darkest moments of our lives, the light of Christ can guide us to peace, healing,
+and redemption.
+
+Episode Highlights:
+
+- The symbolic power of darkness and destruction in 3 Nephi 8 and how it mirrors the spiritual and emotional trials we \
+face today.
+- Christ's call to repentance and mercy as He speaks to the Nephites during the three days of darkness, urging them to \
+return to Him.
+- The Savior's glorious appearance to the Nephites in 3 Nephi 11, bringing light and hope after the darkness, and the \
+deeply personal invitation to arise and come unto Him.
+- Reflections on how the Savior's light can dispel the darkness in our own lives and how His doctrines of faith, \
+repentance, and baptism offer us a path to eternal life.
+
+Join us as we walk through these sacred chapters and find hope and strength in the words and actions of the Lord. \
+Remember, His invitation to "arise and come forth" is extended to each of us. Let His light pierce your darkness and \
+bring you peace.
+
+*Scriptures Discussed:*
+3 Nephi 8-11
+John 8:12
+Doctrine and Covenants 1:31-32
+Matthew 18:3
+John 16:33
+
+Subscribe for more scripture studies and reflections on faith, redemption, and the teachings of Jesus Christ, all \
+through the lens of Joshua Graham.
+
+#BookOfMormon #JoshuaGraham #ScriptureStudy #Faith #ComeFollowMe #Fallout #3Nephi #LightInDarkness #TheBurnedMan \
+#Redemption
+```
+
 This is the episode outline:
 ```
 {episode}
