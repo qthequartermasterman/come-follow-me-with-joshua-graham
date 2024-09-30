@@ -556,6 +556,7 @@ def milliseconds_to_timestamps(milliseconds: int) -> str:
 
 class Segment(pydantic.BaseModel):
     """A segment of an episode outline."""
+
     title: str = pydantic.Field(
         description="The title of the segment providing insight about the content of the segment. This is shown in the episode outline as a chapter heading."
     )
@@ -567,6 +568,7 @@ class Segment(pydantic.BaseModel):
 
 class EpisodeOutline(pydantic.BaseModel):
     """An outline for a podcast episode."""
+
     title: str = pydantic.Field(
         description="The title of the episode providing insight about the content of the episode, but is still succinct and catchy to attract listeners."
     )
@@ -598,6 +600,7 @@ class EpisodeOutline(pydantic.BaseModel):
 
 class Episode(EpisodeOutline):
     """A full podcast episode."""
+
     _normalize_introduction = pydantic.field_validator("introduction")(add_pronunciation_helpers)
     _normalize_closing = pydantic.field_validator("closing")(add_pronunciation_helpers)
 
