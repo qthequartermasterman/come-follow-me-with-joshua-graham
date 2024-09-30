@@ -18,13 +18,13 @@ from elevenlabs import VoiceSettings
 from elevenlabs.client import ElevenLabs
 from typing_extensions import Callable, ParamSpec, Self, TypeVar
 
-# All the proper names in the Book of Mormon should be replaced with the phoneme tags
 
 logging.basicConfig(level=logging.INFO)
 
 P = ParamSpec("P")
 Model = TypeVar("Model", bound=pydantic.BaseModel)
 
+# All the proper names in the Book of Mormon should be replaced with the phoneme tags
 NAMES = {
     "1 Nephi ": 'first <phoneme alphabet="ipa" ph="ˈniː.faɪ">Nephi</phoneme> ',
     "2 Nephi ": 'second <phoneme alphabet="ipa" ph="ˈniː.faɪ">Nephi</phoneme> ',
@@ -422,7 +422,7 @@ doctrinally-sound commentary.
 """
 assert EPISODE_OUTLINE_GENERATION_SYSTEM_PROMPT.strip()
 
-JOSHUA_GRAHAM_BACKGROUND_TEXT = pathlib.Path("joshua_graham_background.txt").read_text("utf-8")
+JOSHUA_GRAHAM_BACKGROUND_TEXT = httpx.get("https://fallout.fandom.com/wiki/Joshua_Graham?action=raw").text
 assert JOSHUA_GRAHAM_BACKGROUND_TEXT.strip()
 
 EPISODE_FLESH_OUT_GENERATION_PROMPT = """\
