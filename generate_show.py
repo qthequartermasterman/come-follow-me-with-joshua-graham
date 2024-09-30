@@ -422,6 +422,7 @@ doctrinally-sound commentary.
 """
 assert EPISODE_OUTLINE_GENERATION_SYSTEM_PROMPT.strip()
 
+logging.info("Fetching Joshua Graham background text...")
 JOSHUA_GRAHAM_BACKGROUND_TEXT = httpx.get("https://fallout.fandom.com/wiki/Joshua_Graham?action=raw").text
 assert JOSHUA_GRAHAM_BACKGROUND_TEXT.strip()
 
