@@ -979,7 +979,7 @@ def generate_video_description(episode: Episode) -> str:
 
 
 if __name__ == "__main__":
-    WEEK_NUMBER = 41
+    WEEK_NUMBER = 42
     CURRICULUM_LINK = f"https://www.churchofjesuschrist.org/study/manual/come-follow-me-for-home-and-church-book-of-mormon-2024/{WEEK_NUMBER}?lang=eng"
     OUTPUT_DIR = pathlib.Path("episodes")
 
@@ -1008,8 +1008,12 @@ if __name__ == "__main__":
     episode = generate_episode(lesson_reference, curriculum_text, episode_outline=episode_outline)
     logging.info(episode.model_dump_json(indent=4))
 
+    input("\n\n⚠️⚠️Please review the episode and press enter to continue.⚠️⚠️")
+
     logging.info("Generating audio files")
     episode.generate_audio_files(pathlib.Path(output_dir))
+
+    logging.info("Saving video")
     episode.save_video(pathlib.Path(output_dir), lesson_reference)
 
     logging.info("Generating video description")
