@@ -427,7 +427,6 @@ JOSHUA_GRAHAM_BACKGROUND_TEXT = httpx.get("https://fallout.fandom.com/wiki/Joshu
 assert JOSHUA_GRAHAM_BACKGROUND_TEXT.strip()
 
 EPISODE_FLESH_OUT_GENERATION_PROMPT = """\
-
 This is the episode outline:
 
 ```
@@ -980,6 +979,10 @@ def generate_video_description(episode: Episode) -> str:
 
 
 if __name__ == "__main__":
+    # Make sure to set the `ELEVEN_API_KEY` environment variable to your ElevenLabs API key
+    # and the `OPENAI_API_KEY` environment variable to your OpenAI API key.
+    # Once you have set these environment variables, you can run this script to generate a podcast episode, after
+    # setting `WEEK_NUMBER` to the week number of the curriculum you want to generate an episode for.
     WEEK_NUMBER = 42
     CURRICULUM_LINK = f"https://www.churchofjesuschrist.org/study/manual/come-follow-me-for-home-and-church-book-of-mormon-2024/{WEEK_NUMBER}?lang=eng"
     OUTPUT_DIR = pathlib.Path("episodes")
@@ -992,6 +995,12 @@ if __name__ == "__main__":
     lesson_title = soup.select(".title-number")[0].get_text()
     lesson_reference = soup.select("h1")[0].get_text()
     curriculum_text = f"{lesson_title} ({lesson_reference})"
+
+    input(
+        'You are about to create an episode of "Come, Follow Me with Joshua Graham" for the lesson\n'
+        f"\t> {lesson_title} ({lesson_reference}).\n\n"
+        "Please press enter to continue..."
+    )
 
     output_dir = OUTPUT_DIR / (lesson_reference.replace(" ", ""))
     master_dir = OUTPUT_DIR / "master"
