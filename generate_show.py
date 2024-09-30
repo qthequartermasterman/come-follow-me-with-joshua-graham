@@ -1,3 +1,5 @@
+"""Generate an episode of "Come, Follow Me with Joshua Graham"."""
+
 import functools
 import hashlib
 import itertools
@@ -17,7 +19,6 @@ import tqdm
 from elevenlabs import VoiceSettings
 from elevenlabs.client import ElevenLabs
 from typing_extensions import Callable, ParamSpec, Self, TypeVar
-
 
 logging.basicConfig(level=logging.INFO)
 
