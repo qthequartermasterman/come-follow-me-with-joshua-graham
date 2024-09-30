@@ -527,6 +527,8 @@ FINAL_VIDEO_FILENAME = "final_video.mp4"
 INTRO_WITH_FADE_FILENAME = "introduction_with_fades.mp3"
 OUTRO_WITH_FADE_FILENAME = "outro_with_fades.mp3"
 
+TIMESTAMPS_FILENAME = "timestamps.txt"
+
 INTRO_FIRST_FADE_IN_DURATION_MS = 5000
 INTRO_FIRST_FADE_OUT_DURATION_MS = 3000
 INTRO_FINAL_FADE_IN_START_POINT_MS = 11000
@@ -899,13 +901,11 @@ class Episode(EpisodeOutline):
         composite_audio += outro_clip
         composite_audio.export(composite_file, format="mp3")
 
-        logging.info("Segment durations:")
-        for segment_title, duration in durations:
-            logging.info(
-                "%s - %s",
-                milliseconds_to_timestamps(duration),
-                segment_title,
-            )
+        durations_string = "\n".join(
+            f"{milliseconds_to_timestamps(duration)} - {segment_title}" for segment_title, duration in durations
+        )
+        logging.info("Segment durations: \n%s", durations_string)
+        (output_dir / TIMESTAMPS_FILENAME).write_text(durations_string)
 
     def save_video(self, output_dir: pathlib.Path, lesson_reference: str) -> None:
         """Save the video for the episode.
@@ -1065,4 +1065,8 @@ if __name__ == "__main__":
 
     logging.info("Generating video description")
     video_description = generate_video_description(episode=episode)
+    
+    if (timestamps := (output_dir / TIMESTAMPS_FILENAME)).exists():
+        video_description += f"\n\nTimestamps:\n{timestamps.read_text()}"
+
     logging.info(video_description)
