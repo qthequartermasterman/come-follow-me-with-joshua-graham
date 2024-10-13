@@ -12,7 +12,7 @@ import googleapiclient.errors
 from googleapiclient.http import MediaFileUpload
 
 # OAuth 2.0 credentials file, obtained from Google Developer Console
-CLIENT_SECRETS_FILE = os.environ["GOOGLE_APPLICATION_CREDENTIALS"]
+CLIENT_SECRETS_FILE = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", None)
 
 # API scopes
 YOUTUBE_SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
@@ -82,8 +82,12 @@ def get_authenticated_service_youtube() -> Any:
     Returns:
         The authenticated YouTube service.
 
+    Raises:
+        ValueError: If the GOOGLE_APPLICATION_CREDENTIALS environment variable is not set.
     """
     logging.info("Authenticating with YouTube")
+    if CLIENT_SECRETS_FILE is None:
+        raise ValueError("GOOGLE_APPLICATION_CREDENTIALS environment variable not set.")
     flow = google_auth_oauthlib.flow.InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, YOUTUBE_SCOPES)
     credentials = flow.run_local_server(port=0)
     return googleapiclient.discovery.build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, credentials=credentials)

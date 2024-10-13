@@ -19,21 +19,24 @@ import fire
 logging.basicConfig(level=logging.INFO)
 
 
-def main(week_number: int, output_dir: str | pathlib.Path = pathlib.Path("../episodes")) -> None:
+def main(week_number: int, output_dir: str | pathlib.Path = pathlib.Path("../episodes"), upload_to_youtube: bool = True) -> None:
     """Generate an episode of "Come, Follow Me with Joshua Graham".
 
     Args:
         week_number: The week number of the curriculum to generate an episode for.
         output_dir: The directory to save the episode to.
+        upload_to_youtube: Whether to upload the episode to YouTube.
 
     Raises:
-        ValueError: If the `ELEVEN_API_KEY` or `OPENAI_API_KEY` environment variables are not set.
-
+        ValueError: If the `ELEVEN_API_KEY`, `OPENAI_API_KEY`, or `GOOGLE_APPLICATION_CREDENTIALS` environment
+            variables are not set.
     """
     if not os.getenv("ELEVEN_API_KEY"):
         raise ValueError("Please set the `ELEVEN_API_KEY` environment variable to your ElevenLabs API key.")
     if not os.getenv("OPENAI_API_KEY"):
         raise ValueError("Please set the `OPENAI_API_KEY` environment variable to your OpenAI API key.")
+    if not os.getenv("GOOGLE_APPLICATION_CREDENTIALS") and upload_to_youtube:
+        raise ValueError("Please set the `GOOGLE_APPLICATION_CREDENTIALS` environment variable to your Google Cloud credentials.")
 
     output_dir = pathlib.Path(output_dir)
 
@@ -71,6 +74,14 @@ def main(week_number: int, output_dir: str | pathlib.Path = pathlib.Path("../epi
     logging.info("Saving video")
     episode.save_video(pathlib.Path(output_dir), lesson_reference)
 
+    if not upload_to_youtube:
+        return
+
+    input(
+        "\n\n⚠️⚠️Please review the video description.⚠️⚠️\n\nYou are about to upload this video to YouTube. Please hit "
+        "enter to continue, and when prompted, authenticate with YouTube..."
+    )
+
     logging.info("Generating video description")
     video_description = generate_video_description(episode=episode)
 
@@ -78,11 +89,6 @@ def main(week_number: int, output_dir: str | pathlib.Path = pathlib.Path("../epi
         video_description += f"\n\nTimestamps:\n{timestamps.read_text()}"
 
     logging.info(video_description)
-
-    input(
-        "\n\n⚠️⚠️Please review the video description.⚠️⚠️\n\nYou are about to upload this video to YouTube. Please hit "
-        "enter to continue, and when prompted, authenticate with YouTube..."
-    )
 
     publish_date = generate_show.youtube.determine_publish_date(lesson_title)
     logging.info("Publishing episode to YouTube")

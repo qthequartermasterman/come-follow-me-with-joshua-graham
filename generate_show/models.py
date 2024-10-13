@@ -203,3 +203,5 @@ class Episode(EpisodeOutline):
             fps=24,
             threads=multiprocessing.cpu_count(),
         )
+
+        logging.info("Video created at %s", final_video)
