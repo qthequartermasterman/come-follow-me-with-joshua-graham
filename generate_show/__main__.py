@@ -44,7 +44,6 @@ if __name__ == "__main__":
     # Once you have set these environment variables, you can run this script to generate a podcast episode, after
     # setting `WEEK_NUMBER` to the week number of the curriculum you want to generate an episode for.
     WEEK_NUMBER = 42
-    CURRICULUM_LINK = f"https://www.churchofjesuschrist.org/study/manual/come-follow-me-for-home-and-church-book-of-mormon-2024/{WEEK_NUMBER}?lang=eng"
     OUTPUT_DIR = pathlib.Path("../episodes")
 
     lesson_title, lesson_reference, curriculum_text = fetch_curriculum(WEEK_NUMBER)
