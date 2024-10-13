@@ -21,3 +21,8 @@ repos:
         - python
         - pyi
         - jupyter
+-   repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+    -   id: detect-secrets
+        exclude: package.lock.json
