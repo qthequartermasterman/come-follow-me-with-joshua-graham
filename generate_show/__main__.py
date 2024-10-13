@@ -14,6 +14,7 @@ from generate_show.prompt import (
     generate_episode_outline,
     generate_video_description,
 )
+import fire
 
 logging.basicConfig(level=logging.INFO)
 
@@ -96,11 +97,4 @@ def main(week_number: int, output_dir: str | pathlib.Path = pathlib.Path("../epi
 
 
 if __name__ == "__main__":
-    # Make sure to set the `ELEVEN_API_KEY` environment variable to your ElevenLabs API key
-    # and the `OPENAI_API_KEY` environment variable to your OpenAI API key.
-    # Once you have set these environment variables, you can run this script to generate a podcast episode, after
-    # setting `WEEK_NUMBER` to the week number of the curriculum you want to generate an episode for.
-    WEEK_NUMBER = 42
-    OUTPUT_DIR = pathlib.Path("../episodes")
-
-    main(WEEK_NUMBER, OUTPUT_DIR)
+    fire.Fire(main)
