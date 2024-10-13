@@ -99,7 +99,7 @@ def main(
 
     logging.info(video_description)
 
-    publish_date = generate_show.youtube.determine_publish_date(cfm_curriculum.title)
+    publish_date = generate_show.youtube.determine_publish_date(cfm_curriculum)
     logging.info("Publishing episode to YouTube")
     video_url = generate_show.youtube.publish_episode_to_youtube(
         output_dir / files.FINAL_VIDEO_FILENAME,

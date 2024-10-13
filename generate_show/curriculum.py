@@ -5,7 +5,7 @@ import pathlib
 import hashlib
 from typing_extensions import ParamSpec, TypeVar
 from typing import Callable
-import pydantic
+import datetime
 
 import bs4
 import httpx
@@ -37,6 +37,16 @@ class ComeFollowMeCurriculum(models.CacheModel):
         lesson_reference = soup.select("h1")[0].get_text()
         curriculum_text = soup.find("body").get_text()
         return cls(title=lesson_title, scripture_reference=lesson_reference, text=curriculum_text)
+
+    @property
+    def start_date(self) -> datetime.datetime:
+        """Get the start date of the curriculum.
+
+        Returns:
+            The start date of the curriculum.
+        """
+        date_str = self.title.split("–")[0].strip() + ", 2024"
+        return datetime.datetime.strptime(date_str, "%B %d, %Y")
 
 def cache_text_file(func: Callable[P, R]) -> Callable[P, R]:
     """Cache the output of a function to a file.

@@ -11,6 +11,8 @@ import googleapiclient.discovery
 import googleapiclient.errors
 from googleapiclient.http import MediaFileUpload
 
+from generate_show import curriculum
+
 # OAuth 2.0 credentials file, obtained from Google Developer Console
 CLIENT_SECRETS_FILE = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", None)
 
@@ -146,19 +148,19 @@ def publish_episode_to_youtube(
     return url
 
 
-def determine_publish_date(episode_week: str) -> datetime.datetime:
+def determine_publish_date(cfm_curriculum: curriculum.ComeFollowMeCurriculum) -> datetime.datetime:
     """Determine the publish date for an episode.
 
+    Set the publish date to 6 PM UTC the day before the curriculum start date. If the publish date is in the past, then
+    set it to an hour from now (to give time to review the episode before publishing).
+
     Args:
-        episode_week: The week of the episode.
+        cfm_curriculum: The week of the episode.
 
     Returns:
         The publish date for the episode
-
     """
-    date_str = episode_week.split("–")[0].strip() + ", 2024"
-    date = datetime.datetime.strptime(date_str, "%B %d, %Y")
-    publish_date = date - datetime.timedelta(days=1)
+    publish_date = cfm_curriculum.start_date - datetime.timedelta(days=1)
     # Set the publish time to 6 PM UTC
     publish_date = publish_date.replace(hour=18, minute=0, second=0, microsecond=0)
 
