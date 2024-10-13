@@ -141,6 +141,7 @@ class Episode(EpisodeOutline):
             output_dir: The directory to save the audio files to.
 
         """
+        logging.info("Generating audio files")
         output_dir.mkdir(exist_ok=True)
 
         text_files = (
@@ -148,7 +149,7 @@ class Episode(EpisodeOutline):
             + self.segment_text_files
             + [(self.closing, files.CLOSING_FILENAME)]
         )
-        for text, file_name in tqdm.tqdm(text_files):
+        for text, file_name in tqdm.tqdm(text_files, desc="Generating audio files from text"):
             generate_show.narration.generate_audio_file_from_text(text, output_dir / file_name)
 
         create_intro_clip_with_fades(output_dir)

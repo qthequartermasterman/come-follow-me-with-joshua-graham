@@ -6,12 +6,14 @@ import logging
 import os
 import pathlib
 import shutil
+import datetime
 
 import fire
+import simple_term_menu
 
 import generate_show.youtube
 from generate_show import files
-from generate_show.curriculum import fetch_curriculum
+from generate_show.curriculum import fetch_curriculum, get_all_curriculum_for_year, ComeFollowMeCurriculum
 from generate_show.prompt import (
     generate_episode,
     generate_episode_outline,
@@ -20,9 +22,27 @@ from generate_show.prompt import (
 
 logging.basicConfig(level=logging.INFO)
 
+def curriculum_menu() -> ComeFollowMeCurriculum:
+    """Select a Come, Follow Me curriculum to generate an episode for with an interactive menu.
+
+    Returns:
+        The selected curriculum.
+    """
+
+    curricula = get_all_curriculum_for_year()
+    menu_options = [f"{curriculum.title} ({curriculum.scripture_reference})" for curriculum in curricula.values()]
+    now = datetime.datetime.now()
+    lesson_index = next(
+        (index for index, week in curricula.items() if week.start_date > now),
+        0,
+    )
+    menu = simple_term_menu.TerminalMenu(menu_options, cursor_index=lesson_index, title="Select a Come, Follow Me lesson...")
+    chosen_week_index = menu.show()
+    return curricula[chosen_week_index]
+
 
 def main(
-    week_number: int, output_dir: str | pathlib.Path = pathlib.Path("../episodes"), upload_to_youtube: bool = True
+    week_number: int | None = None, output_dir: str | pathlib.Path = pathlib.Path("../episodes"), upload_to_youtube: bool = True
 ) -> None:
     """Generate an episode of "Come, Follow Me with Joshua Graham".
 
@@ -47,8 +67,10 @@ def main(
 
     output_dir = pathlib.Path(output_dir)
 
-    cfm_curriculum = fetch_curriculum(week_number)
-    # lesson_title, lesson_reference, curriculum_text = fetch_curriculum(week_number)
+    if week_number is not None:
+        cfm_curriculum = fetch_curriculum(week_number)
+    else:
+        cfm_curriculum = curriculum_menu()
 
     input(
         'You are about to create an episode of "Come, Follow Me with Joshua Graham" for the lesson\n'
@@ -56,16 +78,16 @@ def main(
         "Please press enter to continue..."
     )
 
-    output_dir = output_dir / (cfm_curriculum.scripture_reference.replace(" ", ""))
     master_dir = output_dir / files.MASTER_DIRECTORY_NAME
+    lesson_dir = output_dir / (cfm_curriculum.scripture_reference.replace(" ", ""))
     # Create the output directory using the master directory as a template
-    if not output_dir.exists():
+    if not lesson_dir.exists():
         if not master_dir.exists():
             raise FileNotFoundError(
                 f"Master directory not found at {master_dir}. Please create a master directory to use as a template."
             )
         logging.info("Copying master directory to output directory")
-        shutil.copytree(master_dir, output_dir)
+        shutil.copytree(master_dir, lesson_dir)
 
     logging.info("Generating episode outline")
     episode_outline = generate_episode_outline(cfm_curriculum.scripture_reference, cfm_curriculum.text)
@@ -78,31 +100,34 @@ def main(
     input("\n\n⚠️⚠️Please review the episode and press enter to continue.⚠️⚠️")
 
     logging.info("Generating audio files")
-    episode.generate_audio_files(pathlib.Path(output_dir))
+    episode.generate_audio_files(lesson_dir)
 
     logging.info("Saving video")
-    episode.save_video(pathlib.Path(output_dir), cfm_curriculum.scripture_reference)
+    episode.save_video(lesson_dir, cfm_curriculum.scripture_reference)
 
     if not upload_to_youtube:
         return
 
-    input(
-        "\n\n⚠️⚠️Please review the video description.⚠️⚠️\n\nYou are about to upload this video to YouTube. Please hit "
-        "enter to continue, and when prompted, authenticate with YouTube..."
-    )
-
     logging.info("Generating video description")
     video_description = generate_video_description(episode=episode)
 
-    if (timestamps := (output_dir / files.TIMESTAMPS_FILENAME)).exists():
+    if (timestamps := (lesson_dir / files.TIMESTAMPS_FILENAME)).exists():
         video_description += f"\n\nTimestamps:\n{timestamps.read_text()}"
+
+    publish_date = generate_show.youtube.determine_publish_date(cfm_curriculum)
 
     logging.info(video_description)
 
-    publish_date = generate_show.youtube.determine_publish_date(cfm_curriculum)
+    input(
+        "\n\n⚠️⚠️Please review the video description.⚠️⚠️\n\nYou are about to upload this video to YouTube.\n\n"
+        f"Publishing Date: {publish_date}\n\n"
+        f"Video description:\n{video_description}\n\n"
+        "Please hit enter to continue, and when prompted, authenticate with YouTube..."
+    )
+
     logging.info("Publishing episode to YouTube")
     video_url = generate_show.youtube.publish_episode_to_youtube(
-        output_dir / files.FINAL_VIDEO_FILENAME,
+        lesson_dir / files.FINAL_VIDEO_FILENAME,
         episode_title=episode.title,
         scripture_reference=cfm_curriculum.scripture_reference,
         video_description=video_description,

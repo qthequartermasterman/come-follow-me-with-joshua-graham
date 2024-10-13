@@ -8,6 +8,7 @@ from typing import Callable
 import datetime
 
 import bs4
+import tqdm
 import httpx
 from generate_show import models
 
@@ -102,5 +103,19 @@ def fetch_curriculum(week_number: int) -> ComeFollowMeCurriculum:
     week_number_str = str(week_number).zfill(2)
     curriculum_link = CURRICULUM_LINK.format(week_number=week_number_str)
     text = fetch_website_text(curriculum_link)
-
     return ComeFollowMeCurriculum.parse_from_text(text)
+
+def get_all_curriculum_for_year() -> dict[int, ComeFollowMeCurriculum]:
+    """Get all the curriculum for the year.
+
+    Returns:
+        A dictionary of the curriculum for each week.
+
+    """
+    curriculum = {}
+    for week_number in tqdm.tqdm(range(1, 53), desc="Fetching curricula..."):
+        try:
+            curriculum[week_number] = fetch_curriculum(week_number)
+        except Exception as e:
+            logging.error("Error fetching curriculum for week %s: %s", week_number, e)
+    return curriculum
