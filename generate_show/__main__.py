@@ -19,12 +19,23 @@ from typing_extensions import Callable, ParamSpec, Self, TypeVar
 
 import generate_show.narration
 import generate_show.youtube
+from generate_show import files
 
 logging.basicConfig(level=logging.INFO)
 
 P = ParamSpec("P")
 Model = TypeVar("Model", bound=pydantic.BaseModel)
 
+INTRO_FIRST_FADE_IN_DURATION_MS = 5000
+INTRO_FIRST_FADE_OUT_DURATION_MS = 3000
+INTRO_FINAL_FADE_IN_START_POINT_MS = 11000
+INTRO_FINAL_FADE_IN_DURATION_MS = 5000
+INTRO_FINAL_FADE_OUT_DURATION_MS = 3000
+OUTRO_FADE_IN_START_POINT_MS = 58000
+OUTRO_FADE_IN_STARTS_BEFORE_END_MS = 2000
+OUTRO_FADE_IN_DURATION_MS = 5000
+OUTRO_MUSIC_STATIC_DURATION_MS = 15000
+OUTRO_FADE_OUT_DURATION_MS = 5000
 
 EPISODE_OUTLINE_GENERATION_SYSTEM_PROMPT = """\
 You are Joshua Graham, the Burned Man, of Fallout: New Vegas fame. You have recently been called as your ward Sunday
@@ -137,31 +148,6 @@ This is the episode outline:
 ```
 """
 
-INTRODUCTION_FILENAME = "introduction.mp3"
-SEGMENT_FILENAME_TEMPLATE = "segment_{i}.mp3"
-CLOSING_FILENAME = "closing.mp3"
-MUSIC_FILENAME = "music.mp3"
-COMPOSITE_FILENAME = "composite.mp3"
-VIDEO_BACKGROUND_FILENAME = "background.png"
-FINAL_VIDEO_FILENAME = "final_video.mp4"
-
-INTRO_WITH_FADE_FILENAME = "introduction_with_fades.mp3"
-OUTRO_WITH_FADE_FILENAME = "outro_with_fades.mp3"
-
-TIMESTAMPS_FILENAME = "timestamps.txt"
-
-INTRO_FIRST_FADE_IN_DURATION_MS = 5000
-INTRO_FIRST_FADE_OUT_DURATION_MS = 3000
-INTRO_FINAL_FADE_IN_START_POINT_MS = 11000
-INTRO_FINAL_FADE_IN_DURATION_MS = 5000
-INTRO_FINAL_FADE_OUT_DURATION_MS = 3000
-
-OUTRO_FADE_IN_START_POINT_MS = 58000
-OUTRO_FADE_IN_STARTS_BEFORE_END_MS = 2000
-OUTRO_FADE_IN_DURATION_MS = 5000
-OUTRO_MUSIC_STATIC_DURATION_MS = 15000
-OUTRO_FADE_OUT_DURATION_MS = 5000
-
 INTERMISSION_SILENCE_MS = 2500
 
 
@@ -177,19 +163,19 @@ def create_intro_clip_with_fades(output_dir: pathlib.Path) -> None:
         ValueError: If the introduction or music clip do not exist.
 
     """
-    final_file = output_dir / INTRO_WITH_FADE_FILENAME
+    final_file = output_dir / files.INTRO_WITH_FADE_FILENAME
     if final_file.exists():
         logging.info("Intro clip already exists. Skipping creation.")
         return
 
-    if not (output_dir / INTRODUCTION_FILENAME).exists():
+    if not (introduction_file := (output_dir / files.INTRODUCTION_FILENAME)).exists():
         raise ValueError("Cannot create fadein clip without an introduction")
 
-    if not (output_dir / MUSIC_FILENAME).exists():
+    if not (music_file := (output_dir / files.MUSIC_FILENAME)).exists():
         raise ValueError("Cannot create fadein clip without music")
 
-    introduction_audio: pydub.AudioSegment = pydub.AudioSegment.from_file(output_dir / INTRODUCTION_FILENAME, "mp3")
-    music_audio: pydub.AudioSegment = pydub.AudioSegment.from_file(output_dir / MUSIC_FILENAME, "mp3")
+    introduction_audio: pydub.AudioSegment = pydub.AudioSegment.from_file(introduction_file, "mp3")
+    music_audio: pydub.AudioSegment = pydub.AudioSegment.from_file(music_file, "mp3")
 
     first_music_fade = (
         music_audio[: (INTRO_FIRST_FADE_IN_DURATION_MS + INTRO_FIRST_FADE_OUT_DURATION_MS)]
@@ -231,12 +217,12 @@ def composite_audio_files(output_dir: pathlib.Path, segment_files: list[tuple[st
 
     """
     logging.info("Compositing audio files")
-    composite_file = output_dir / COMPOSITE_FILENAME
+    composite_file = output_dir / files.COMPOSITE_FILENAME
     if composite_file.exists():
         logging.info("Composite audio file already exists. Skipping creation.")
         return
-    intro_with_fades = output_dir / INTRO_WITH_FADE_FILENAME
-    outro_with_fades = output_dir / OUTRO_WITH_FADE_FILENAME
+    intro_with_fades = output_dir / files.INTRO_WITH_FADE_FILENAME
+    outro_with_fades = output_dir / files.OUTRO_WITH_FADE_FILENAME
     if not intro_with_fades.exists():
         raise ValueError("Cannot composite audio files without an intro clip")
     if not outro_with_fades.exists():
@@ -264,7 +250,7 @@ def composite_audio_files(output_dir: pathlib.Path, segment_files: list[tuple[st
         f"{milliseconds_to_timestamps(duration)} - {segment_title}" for segment_title, duration in durations
     )
     logging.info("Segment durations: \n%s", durations_string)
-    (output_dir / TIMESTAMPS_FILENAME).write_text(durations_string)
+    (output_dir / files.TIMESTAMPS_FILENAME).write_text(durations_string)
 
 
 def create_outro_clip_with_fades(output_dir: pathlib.Path) -> None:
@@ -279,16 +265,16 @@ def create_outro_clip_with_fades(output_dir: pathlib.Path) -> None:
         ValueError: If the closing statement or music clip do not exist.
 
     """
-    final_file = output_dir / OUTRO_WITH_FADE_FILENAME
+    final_file = output_dir / files.OUTRO_WITH_FADE_FILENAME
 
     if final_file.exists():
         logging.info("Outro clip already exists. Skipping creation.")
         return
 
-    if not (output_dir / CLOSING_FILENAME).exists():
+    if not (output_dir / files.CLOSING_FILENAME).exists():
         raise ValueError("Cannot create fadeout clip without a closing statement")
 
-    if not (output_dir / MUSIC_FILENAME).exists():
+    if not (output_dir / files.MUSIC_FILENAME).exists():
         raise ValueError("Cannot create fadeout clip without music")
 
     music_end_position = (
@@ -298,10 +284,10 @@ def create_outro_clip_with_fades(output_dir: pathlib.Path) -> None:
         + OUTRO_FADE_OUT_DURATION_MS
     )
 
-    music_audio: pydub.AudioSegment = pydub.AudioSegment.from_file(output_dir / MUSIC_FILENAME, "mp3")[
+    music_audio: pydub.AudioSegment = pydub.AudioSegment.from_file(output_dir / files.MUSIC_FILENAME, "mp3")[
         OUTRO_FADE_IN_START_POINT_MS:music_end_position
     ]
-    outro_speech_audio: pydub.AudioSegment = pydub.AudioSegment.from_file(output_dir / CLOSING_FILENAME, "mp3")
+    outro_speech_audio: pydub.AudioSegment = pydub.AudioSegment.from_file(output_dir / files.CLOSING_FILENAME, "mp3")
 
     music_audio = music_audio.fade_in(OUTRO_FADE_IN_DURATION_MS).fade_out(OUTRO_FADE_OUT_DURATION_MS)
 
@@ -431,12 +417,12 @@ class Episode(EpisodeOutline):
     @property
     def segment_files(self) -> list[tuple[str, str]]:
         """Get the title of each segment along with the filename to save the audio to."""
-        return [(segment.title, SEGMENT_FILENAME_TEMPLATE.format(i=i)) for i, segment in enumerate(self.segments)]
+        return [(segment.title, files.SEGMENT_FILENAME_TEMPLATE.format(i=i)) for i, segment in enumerate(self.segments)]
 
     @property
     def segment_text_files(self) -> list[tuple[str, str]]:
         """Get the text of each segment along with the filename to save the audio to."""
-        return [(segment.text, SEGMENT_FILENAME_TEMPLATE.format(i=i)) for i, segment in enumerate(self.segments)]
+        return [(segment.text, files.SEGMENT_FILENAME_TEMPLATE.format(i=i)) for i, segment in enumerate(self.segments)]
 
     def generate_audio_files(self, output_dir: pathlib.Path) -> None:
         """Generate the audio files for the episode.
@@ -450,7 +436,9 @@ class Episode(EpisodeOutline):
         output_dir.mkdir(exist_ok=True)
 
         text_files = (
-            [(self.introduction, INTRODUCTION_FILENAME)] + self.segment_text_files + [(self.closing, CLOSING_FILENAME)]
+            [(self.introduction, files.INTRODUCTION_FILENAME)]
+            + self.segment_text_files
+            + [(self.closing, files.CLOSING_FILENAME)]
         )
         for text, file_name in tqdm.tqdm(text_files):
             generate_show.narration.generate_audio_file_from_text(text, output_dir / file_name)
@@ -473,12 +461,12 @@ class Episode(EpisodeOutline):
 
         """
         logging.info("Creating video")
-        final_video = output_dir / FINAL_VIDEO_FILENAME
+        final_video = output_dir / files.FINAL_VIDEO_FILENAME
         if final_video.exists():
             logging.info("Video already exists. Skipping creation.")
             return
 
-        composite_audio = output_dir / COMPOSITE_FILENAME
+        composite_audio = output_dir / files.COMPOSITE_FILENAME
         if not composite_audio.exists():
             raise ValueError("Cannot create video without composite audio")
 
@@ -487,7 +475,7 @@ class Episode(EpisodeOutline):
         text = f"{self.title}\n({lesson_reference})"
         text_clip = mpy.TextClip(text, font="Amiri-Bold", fontsize=60, color="white")
 
-        background_file = output_dir / VIDEO_BACKGROUND_FILENAME
+        background_file = output_dir / files.VIDEO_BACKGROUND_FILENAME
         background_clip = mpy.ImageClip(str(background_file))
 
         final_clip: mpy.CompositeVideoClip = (
@@ -639,7 +627,7 @@ if __name__ == "__main__":
     logging.info("Generating video description")
     video_description = generate_video_description(episode=episode)
 
-    if (timestamps := (output_dir / TIMESTAMPS_FILENAME)).exists():
+    if (timestamps := (output_dir / files.TIMESTAMPS_FILENAME)).exists():
         video_description += f"\n\nTimestamps:\n{timestamps.read_text()}"
 
     logging.info(video_description)
@@ -651,7 +639,7 @@ if __name__ == "__main__":
 
     logging.info("Publishing episode to YouTube")
     video_url = generate_show.youtube.publish_episode_to_youtube(
-        output_dir / FINAL_VIDEO_FILENAME,
+        output_dir / files.FINAL_VIDEO_FILENAME,
         episode_title=episode.title,
         scripture_reference=lesson_reference,
         video_description=video_description,
