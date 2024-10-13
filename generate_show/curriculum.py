@@ -1,4 +1,4 @@
-"""Curriculum utilties for generating show notes."""
+"""Curriculum utilities for generating show notes."""
 
 import logging
 
