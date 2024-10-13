@@ -1,6 +1,7 @@
 """Generate an episode of "Come, Follow Me with Joshua Graham"."""
 
 import logging
+import os
 import pathlib
 import shutil
 
@@ -15,16 +16,24 @@ from generate_show.prompt import (
 
 logging.basicConfig(level=logging.INFO)
 
-if __name__ == "__main__":
-    # Make sure to set the `ELEVEN_API_KEY` environment variable to your ElevenLabs API key
-    # and the `OPENAI_API_KEY` environment variable to your OpenAI API key.
-    # Once you have set these environment variables, you can run this script to generate a podcast episode, after
-    # setting `WEEK_NUMBER` to the week number of the curriculum you want to generate an episode for.
-    WEEK_NUMBER = 42
-    OUTPUT_DIR = pathlib.Path("../episodes")
 
-    lesson_title, lesson_reference, curriculum_text = fetch_curriculum(WEEK_NUMBER)
+def main(week_number: int, output_dir: pathlib.Path) -> None:
+    """Generate an episode of "Come, Follow Me with Joshua Graham".
 
+    Args:
+        week_number: The week number of the curriculum to generate an episode for.
+        output_dir: The directory to save the episode to.
+
+    Raises:
+        ValueError: If the `ELEVEN_API_KEY` or `OPENAI_API_KEY` environment variables are not set.
+
+    """
+    if not os.getenv("ELEVEN_API_KEY"):
+        raise ValueError("Please set the `ELEVEN_API_KEY` environment variable to your ElevenLabs API key.")
+    if not os.getenv("OPENAI_API_KEY"):
+        raise ValueError("Please set the `OPENAI_API_KEY` environment variable to your OpenAI API key.")
+
+    lesson_title, lesson_reference, curriculum_text = fetch_curriculum(week_number)
 
     input(
         'You are about to create an episode of "Come, Follow Me with Joshua Graham" for the lesson\n'
@@ -32,8 +41,8 @@ if __name__ == "__main__":
         "Please press enter to continue..."
     )
 
-    output_dir = OUTPUT_DIR / (lesson_reference.replace(" ", ""))
-    master_dir = OUTPUT_DIR / "master"
+    output_dir = output_dir / (lesson_reference.replace(" ", ""))
+    master_dir = output_dir / "master"
     assert master_dir.exists()
     # Create the output directory using the master directory as a template
     if not output_dir.exists():
@@ -79,3 +88,14 @@ if __name__ == "__main__":
         publish_date=publish_date,
     )
     logging.info("Video published successfully: %s", video_url)
+
+
+if __name__ == "__main__":
+    # Make sure to set the `ELEVEN_API_KEY` environment variable to your ElevenLabs API key
+    # and the `OPENAI_API_KEY` environment variable to your OpenAI API key.
+    # Once you have set these environment variables, you can run this script to generate a podcast episode, after
+    # setting `WEEK_NUMBER` to the week number of the curriculum you want to generate an episode for.
+    WEEK_NUMBER = 42
+    OUTPUT_DIR = pathlib.Path("../episodes")
+
+    main(WEEK_NUMBER, OUTPUT_DIR)
