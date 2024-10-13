@@ -41,7 +41,10 @@ class ComeFollowMeCurriculum(models.CacheModel):
         soup = bs4.BeautifulSoup(text, "html.parser")
         lesson_title = soup.select(".title-number")[0].get_text()
         lesson_reference = soup.select("h1")[0].get_text()
-        curriculum_text = soup.find("body").get_text()
+        body = soup.find("body")
+        if body is None:
+            raise ValueError("Could not find body tag in curriculum text")
+        curriculum_text = body.get_text()
         return cls(title=lesson_title, scripture_reference=lesson_reference, text=curriculum_text)
 
     @property
@@ -56,7 +59,7 @@ class ComeFollowMeCurriculum(models.CacheModel):
         return datetime.datetime.strptime(date_str, "%B %d, %Y")
 
 
-def cache_text_file(func: Callable[P, R]) -> Callable[P, R]:
+def cache_text_file(func: Callable[P, str]) -> Callable[P, str]:
     """Cache the output of a function to a file.
 
     Args:
@@ -67,13 +70,13 @@ def cache_text_file(func: Callable[P, R]) -> Callable[P, R]:
 
     """
 
-    def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> str:
         args_hash = hashlib.sha256((str(args) + str(kwargs)).encode("utf-8")).hexdigest()[:16]
         path = pathlib.Path("../.cache") / f"{func.__name__}-{args_hash}.txt"
         if path.exists():
             logging.info("Cache hit for %s. Using cached %s", path, func.__name__)
             return path.read_text("utf-8")
-        text: R = func(*args, **kwargs)
+        text: str = func(*args, **kwargs)
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(text, encoding="utf-8")
         return text

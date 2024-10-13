@@ -1,7 +1,7 @@
 # Come, Follow Me with Joshua Graham
 Source Code for the [YouTube Channel "Come, Follow Me with Joshua Graham"](https://www.youtube.com/channel/UC3Y028fsu4O99wPlh-KOJCA)
 
-"Come, Follow Me with Joshua Graham" is a podcast that follows the scripture study curriculum "Come, Follow Me" from the perspective of Joshua Graham, the Burned Man. 
+"Come, Follow Me with Joshua Graham" is a podcast that follows the scripture study curriculum "Come, Follow Me" from the perspective of Joshua Graham, the Burned Man.
 
 ## What is "Come, Follow Me"?
 
@@ -12,4 +12,3 @@ Joshua Graham is a fictional character from the popular video game Fallout: New 
 
 > [!WARNING]
 > The voice of Joshua Graham in this podcast is AI-generated and is used for storytelling and educational purposes. Joshua Graham is a fictional character from Fallout: New Vegas, and this content is not affiliated with or endorsed by Bethesda or Obsidian Entertainment. The views presented on this program do not necessarily reflect official doctrine or positions of the Church of Jesus Christ of Latter-day Saints.
-

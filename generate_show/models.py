@@ -5,12 +5,12 @@ import hashlib
 import logging
 import multiprocessing
 import pathlib
-from typing import Callable
+from typing import Callable, Type
 
 import pydantic
 import tqdm
 from moviepy import editor as mpy
-from typing_extensions import ParamSpec, Self, TypeVar
+from typing_extensions import ParamSpec, TypeVar
 
 import generate_show.narration
 from generate_show import files
@@ -24,7 +24,7 @@ class CacheModel(pydantic.BaseModel):
     """A pydantic model that can cache its output to a file."""
 
     @classmethod
-    def cache_pydantic_model(cls: Self, func: Callable[P, Self]) -> Callable[P, Self]:
+    def cache_pydantic_model(cls: Type[Model], func: Callable[P, Model]) -> Callable[P, Model]:
         """Cache the output of a function that returns a pydantic model.
 
         The cached model will be saved to a file in the .cache directory with the name of the class and a hash of the
@@ -39,7 +39,7 @@ class CacheModel(pydantic.BaseModel):
         """
 
         @functools.wraps(func)
-        def wrapper(*args: P.args, **kwargs: P.kwargs) -> Self:
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> Model:
             """Wrap the function to cache the output.
 
             Args:

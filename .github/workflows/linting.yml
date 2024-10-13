@@ -1,0 +1,26 @@
+name: pre-commit
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+env:
+  UV_SYSTEM_PYTHON: true
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v5
+      with:
+          python-version: 3.11
+    - name: Install the latest version of uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: "latest"
+    - name: Install requirements
+      run: |
+          uv pip install -e .[dev,test]
+    - uses: pre-commit/action@v3.0.1
