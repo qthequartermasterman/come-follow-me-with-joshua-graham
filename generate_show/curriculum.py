@@ -1,4 +1,5 @@
 """Curriculum utilties for generating show notes."""
+
 import logging
 
 import bs4
