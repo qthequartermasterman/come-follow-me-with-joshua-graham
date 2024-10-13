@@ -1,0 +1,62 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "generate_show"
+description = "Generate an episode of \"Come, Follow Me with Joshua Graham\"."
+readme = "README.md"
+requires-python = ">=3.8,<3.13"
+license = {file = "LICENSE"}
+keywords = []
+authors = [
+  {name = "Andrew P. Sansom", email = "andrew@euleriancircuit.com" }
+]
+maintainers =[
+  {name = "Andrew P. Sansom", email = "andrew@euleriancircuit.com" }
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "License :: OSI Approved :: MIT License",
+]
+dependencies = [
+  "elevenlabs==1.9.0",
+  "httpx==0.27.0",
+  "magentic==0.32.0",
+  "moviepy==1.0.3",
+  "openai==1.42.0",
+  "pydantic==2.8.2",
+  "pydub==0.25.1",
+  "typing-extensions==4.12.2",
+  "google-auth==2.35.0",
+  "google-auth-oauthlib==1.2.1",
+  "google-auth-httplib2==0.2.0",
+  "google-api-python-client==2.147.0",
+]
+dynamic = ["version"]
+
+
+[project.optional-dependencies]
+dev = []
+test = []
+
+[project.urls]
+"Homepage" = "https://github.com/qthequartermasterman/come-follow-me-with-joshua-graham"
+"Bug Reports" = "https://github.com/qthequartermasterman/come-follow-me-with-joshua-graham/issues"
+"YouTube" = "https://www.youtube.com/@ComeFollowMeWithJoshuaGraham"
+
+
+[tool.setuptools.dynamic]
+version = {attr = "generate_show.__version__"}
+
+[tool.setuptools.package-data]
+generate_show = [
+    "**/*.pyi",
+    "py.typed",
+]
+
+[tool.setuptools.packages.find]
+exclude = ["tests.*"]  # exclude packages matching these glob patterns (empty by default)
+include = ["generate_show*"]  # package names should match these glob patterns (["*"] by default)
+where = ["."]  # list of folders that contain the packages (["."] by default)

@@ -785,7 +785,7 @@ class EpisodeOutline(pydantic.BaseModel):
 
             """
             args_hash = hashlib.sha256((str(args) + str(kwargs)).encode("utf-8")).hexdigest()[:16]
-            path: pathlib.Path = pathlib.Path(".cache") / f"{cls.__name__}-{args_hash}.json"
+            path: pathlib.Path = pathlib.Path("../.cache") / f"{cls.__name__}-{args_hash}.json"
             if path.exists():
                 logging.info("Cache hit for %s. Using cached %s", path, cls.__name__)
                 return cls.model_validate_json(path.read_text())
@@ -1180,7 +1180,7 @@ if __name__ == "__main__":
     # setting `WEEK_NUMBER` to the week number of the curriculum you want to generate an episode for.
     WEEK_NUMBER = 42
     CURRICULUM_LINK = f"https://www.churchofjesuschrist.org/study/manual/come-follow-me-for-home-and-church-book-of-mormon-2024/{WEEK_NUMBER}?lang=eng"
-    OUTPUT_DIR = pathlib.Path("episodes")
+    OUTPUT_DIR = pathlib.Path("../episodes")
 
     logging.info("Fetching curriculum text")
     response = httpx.get(CURRICULUM_LINK)
