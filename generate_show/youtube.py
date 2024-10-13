@@ -139,3 +139,27 @@ def publish_episode_to_youtube(
     logging.info("Video uploaded successfully: %s", url)
 
     return url
+
+
+def determine_publish_date(episode_week: str) -> datetime.datetime:
+    """Determine the publish date for an episode.
+
+    Args:
+        episode_week: The week of the episode.
+
+    Returns:
+        The publish date for the episode
+    """
+    date_str = episode_week.split("–")[0].strip() + ", 2024"
+    date = datetime.datetime.strptime(date_str, "%B %d, %Y")
+    publish_date = date - datetime.timedelta(days=1)
+    # Set the publish time to 6 PM UTC
+    publish_date = publish_date.replace(hour=18, minute=0, second=0, microsecond=0)
+
+    # If the publish date is in the past, then set it to an hour from now
+    if publish_date < datetime.datetime.now(datetime.timezone.utc):
+        publish_date = datetime.datetime.now(
+            datetime.timezone.utc
+        ) + datetime.timedelta(hours=1)
+
+    return publish_date

@@ -1,6 +1,5 @@
 """Generate an episode of "Come, Follow Me with Joshua Graham"."""
 
-import datetime
 import logging
 import pathlib
 import shutil
@@ -183,30 +182,6 @@ def generate_video_description(episode: Episode) -> str:
     """
 
 
-def determine_publish_date(episode_week: str) -> datetime.datetime:
-    """Determine the publish date for an episode.
-
-    Args:
-        episode_week: The week of the episode.
-
-    Returns:
-        The publish date for the episode
-    """
-    date_str = episode_week.split("–")[0].strip() + ", 2024"
-    date = datetime.datetime.strptime(date_str, "%B %d, %Y")
-    publish_date = date - datetime.timedelta(days=1)
-    # Set the publish time to 6 PM UTC
-    publish_date = publish_date.replace(hour=18, minute=0, second=0, microsecond=0)
-
-    # If the publish date is in the past, then set it to an hour from now
-    if publish_date < datetime.datetime.now(datetime.timezone.utc):
-        publish_date = datetime.datetime.now(
-            datetime.timezone.utc
-        ) + datetime.timedelta(hours=1)
-
-    return publish_date
-
-
 if __name__ == "__main__":
     # Make sure to set the `ELEVEN_API_KEY` environment variable to your ElevenLabs API key
     # and the `OPENAI_API_KEY` environment variable to your OpenAI API key.
@@ -225,7 +200,7 @@ if __name__ == "__main__":
     lesson_reference = soup.select("h1")[0].get_text()
     curriculum_text = f"{lesson_title} ({lesson_reference})"
 
-    publish_date = determine_publish_date(lesson_title)
+    publish_date = generate_show.youtube.determine_publish_date(lesson_title)
 
     input(
         'You are about to create an episode of "Come, Follow Me with Joshua Graham" for the lesson\n'
