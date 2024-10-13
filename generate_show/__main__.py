@@ -25,7 +25,6 @@ if __name__ == "__main__":
 
     lesson_title, lesson_reference, curriculum_text = fetch_curriculum(WEEK_NUMBER)
 
-    publish_date = generate_show.youtube.determine_publish_date(lesson_title)
 
     input(
         'You are about to create an episode of "Come, Follow Me with Joshua Graham" for the lesson\n'
@@ -70,6 +69,7 @@ if __name__ == "__main__":
         "enter to continue, and when prompted, authenticate with YouTube..."
     )
 
+    publish_date = generate_show.youtube.determine_publish_date(lesson_title)
     logging.info("Publishing episode to YouTube")
     video_url = generate_show.youtube.publish_episode_to_youtube(
         output_dir / files.FINAL_VIDEO_FILENAME,
