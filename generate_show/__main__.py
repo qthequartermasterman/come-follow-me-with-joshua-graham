@@ -1,4 +1,5 @@
 """Generate an episode of "Come, Follow Me with Joshua Graham"."""
+from __future__ import annotations
 
 import logging
 import os
@@ -17,7 +18,7 @@ from generate_show.prompt import (
 logging.basicConfig(level=logging.INFO)
 
 
-def main(week_number: int, output_dir: pathlib.Path) -> None:
+def main(week_number: int, output_dir: str | pathlib.Path = pathlib.Path("../episodes")) -> None:
     """Generate an episode of "Come, Follow Me with Joshua Graham".
 
     Args:
@@ -33,6 +34,8 @@ def main(week_number: int, output_dir: pathlib.Path) -> None:
     if not os.getenv("OPENAI_API_KEY"):
         raise ValueError("Please set the `OPENAI_API_KEY` environment variable to your OpenAI API key.")
 
+    output_dir = pathlib.Path(output_dir)
+
     lesson_title, lesson_reference, curriculum_text = fetch_curriculum(week_number)
 
     input(
@@ -42,10 +45,12 @@ def main(week_number: int, output_dir: pathlib.Path) -> None:
     )
 
     output_dir = output_dir / (lesson_reference.replace(" ", ""))
-    master_dir = output_dir / "master"
-    assert master_dir.exists()
+    master_dir = output_dir / files.MASTER_DIRECTORY_NAME
     # Create the output directory using the master directory as a template
     if not output_dir.exists():
+        if not master_dir.exists():
+            raise FileNotFoundError(
+                f"Master directory not found at {master_dir}. Please create a master directory to use as a template.")
         logging.info("Copying master directory to output directory")
         shutil.copytree(master_dir, output_dir)
 
