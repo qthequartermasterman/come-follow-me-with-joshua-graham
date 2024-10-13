@@ -104,7 +104,7 @@ def composite_audio_files(output_dir: pathlib.Path, segment_files: list[tuple[st
     intro_clip = pydub.AudioSegment.from_file(intro_with_fades, "mp3")
     outro_clip = pydub.AudioSegment.from_file(outro_with_fades, "mp3")
 
-    durations = [("Introduction", 0)]
+    durations: list[tuple[str, int]] = [("Introduction", 0)]
 
     composite_audio = intro_clip + intermission_silence
     for segment_title, segment_file in segment_files:
