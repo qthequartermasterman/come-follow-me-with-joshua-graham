@@ -39,7 +39,7 @@ dynamic = ["version"]
 
 
 [project.optional-dependencies]
-dev = []
+dev = ["pre-commit==4.0.1"]
 test = []
 
 [project.urls]
