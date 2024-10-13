@@ -159,6 +159,7 @@ def determine_publish_date(cfm_curriculum: curriculum.ComeFollowMeCurriculum) ->
 
     Returns:
         The publish date for the episode
+
     """
     publish_date = cfm_curriculum.start_date - datetime.timedelta(days=1)
     # Set the publish time to 6 PM UTC

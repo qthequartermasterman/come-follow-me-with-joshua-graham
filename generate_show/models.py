@@ -19,6 +19,7 @@ from generate_show.audio import composite_audio_files, create_intro_clip_with_fa
 P = ParamSpec("P")
 Model = TypeVar("Model", bound=pydantic.BaseModel)
 
+
 class CacheModel(pydantic.BaseModel):
     """A pydantic model that can cache its output to a file."""
 

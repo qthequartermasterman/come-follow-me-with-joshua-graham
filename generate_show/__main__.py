@@ -2,18 +2,18 @@
 
 from __future__ import annotations
 
+import datetime
 import logging
 import os
 import pathlib
 import shutil
-import datetime
 
 import fire
 import simple_term_menu
 
 import generate_show.youtube
 from generate_show import files
-from generate_show.curriculum import fetch_curriculum, get_all_curriculum_for_year, ComeFollowMeCurriculum
+from generate_show.curriculum import ComeFollowMeCurriculum, fetch_curriculum, get_all_curriculum_for_year
 from generate_show.prompt import (
     generate_episode,
     generate_episode_outline,
@@ -22,13 +22,14 @@ from generate_show.prompt import (
 
 logging.basicConfig(level=logging.INFO)
 
+
 def curriculum_menu() -> ComeFollowMeCurriculum:
     """Select a Come, Follow Me curriculum to generate an episode for with an interactive menu.
 
     Returns:
         The selected curriculum.
-    """
 
+    """
     curricula = get_all_curriculum_for_year()
     menu_options = [f"{curriculum.title} ({curriculum.scripture_reference})" for curriculum in curricula.values()]
     now = datetime.datetime.now()
@@ -36,13 +37,17 @@ def curriculum_menu() -> ComeFollowMeCurriculum:
         (index for index, week in curricula.items() if week.start_date > now),
         0,
     )
-    menu = simple_term_menu.TerminalMenu(menu_options, cursor_index=lesson_index, title="Select a Come, Follow Me lesson...")
+    menu = simple_term_menu.TerminalMenu(
+        menu_options, cursor_index=lesson_index, title="Select a Come, Follow Me lesson..."
+    )
     chosen_week_index = menu.show()
     return curricula[chosen_week_index]
 
 
 def main(
-    week_number: int | None = None, output_dir: str | pathlib.Path = pathlib.Path("../episodes"), upload_to_youtube: bool = True
+    week_number: int | None = None,
+    output_dir: str | pathlib.Path = pathlib.Path("../episodes"),
+    upload_to_youtube: bool = True,
 ) -> None:
     """Generate an episode of "Come, Follow Me with Joshua Graham".
 

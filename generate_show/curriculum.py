@@ -1,15 +1,16 @@
 """Curriculum utilities for generating show notes."""
 
+import datetime
+import hashlib
 import logging
 import pathlib
-import hashlib
-from typing_extensions import ParamSpec, TypeVar
 from typing import Callable
-import datetime
 
 import bs4
-import tqdm
 import httpx
+import tqdm
+from typing_extensions import ParamSpec, TypeVar
+
 from generate_show import models
 
 CURRICULUM_LINK = "https://www.churchofjesuschrist.org/study/manual/come-follow-me-for-home-and-church-book-of-mormon-2024/{week_number}?lang=eng"
@@ -17,7 +18,10 @@ CURRICULUM_LINK = "https://www.churchofjesuschrist.org/study/manual/come-follow-
 P = ParamSpec("P")
 R = TypeVar("R")
 
+
 class ComeFollowMeCurriculum(models.CacheModel):
+    """A model for the Come, Follow Me curriculum for a week."""
+
     title: str
     scripture_reference: str
     text: str
@@ -31,6 +35,7 @@ class ComeFollowMeCurriculum(models.CacheModel):
 
         Returns:
             The parsed curriculum text.
+
         """
         logging.info("Parsing curriculum text")
         soup = bs4.BeautifulSoup(text, "html.parser")
@@ -45,9 +50,11 @@ class ComeFollowMeCurriculum(models.CacheModel):
 
         Returns:
             The start date of the curriculum.
+
         """
         date_str = self.title.split("–")[0].strip() + ", 2024"
         return datetime.datetime.strptime(date_str, "%B %d, %Y")
+
 
 def cache_text_file(func: Callable[P, R]) -> Callable[P, R]:
     """Cache the output of a function to a file.
@@ -59,18 +66,20 @@ def cache_text_file(func: Callable[P, R]) -> Callable[P, R]:
         The cached output of the function.
 
     """
-    def wrapper(*args:P.args, **kwargs:P.kwargs) -> R:
+
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
         args_hash = hashlib.sha256((str(args) + str(kwargs)).encode("utf-8")).hexdigest()[:16]
         path = pathlib.Path("../.cache") / f"{func.__name__}-{args_hash}.txt"
         if path.exists():
             logging.info("Cache hit for %s. Using cached %s", path, func.__name__)
-            return path.read_text('utf-8')
+            return path.read_text("utf-8")
         text: R = func(*args, **kwargs)
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(text, encoding='utf-8')
+        path.write_text(text, encoding="utf-8")
         return text
 
     return wrapper
+
 
 @cache_text_file
 def fetch_website_text(url: str) -> str:
@@ -104,6 +113,7 @@ def fetch_curriculum(week_number: int) -> ComeFollowMeCurriculum:
     curriculum_link = CURRICULUM_LINK.format(week_number=week_number_str)
     text = fetch_website_text(curriculum_link)
     return ComeFollowMeCurriculum.parse_from_text(text)
+
 
 def get_all_curriculum_for_year() -> dict[int, ComeFollowMeCurriculum]:
     """Get all the curriculum for the year.
