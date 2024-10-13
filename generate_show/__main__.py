@@ -47,15 +47,16 @@ def main(
 
     output_dir = pathlib.Path(output_dir)
 
-    lesson_title, lesson_reference, curriculum_text = fetch_curriculum(week_number)
+    cfm_curriculum = fetch_curriculum(week_number)
+    # lesson_title, lesson_reference, curriculum_text = fetch_curriculum(week_number)
 
     input(
         'You are about to create an episode of "Come, Follow Me with Joshua Graham" for the lesson\n'
-        f"\t> {lesson_title} ({lesson_reference}).\n\n"
+        f"\t> {cfm_curriculum.title} ({cfm_curriculum.scripture_reference}).\n\n"
         "Please press enter to continue..."
     )
 
-    output_dir = output_dir / (lesson_reference.replace(" ", ""))
+    output_dir = output_dir / (cfm_curriculum.scripture_reference.replace(" ", ""))
     master_dir = output_dir / files.MASTER_DIRECTORY_NAME
     # Create the output directory using the master directory as a template
     if not output_dir.exists():
@@ -67,11 +68,11 @@ def main(
         shutil.copytree(master_dir, output_dir)
 
     logging.info("Generating episode outline")
-    episode_outline = generate_episode_outline(lesson_reference, curriculum_text)
+    episode_outline = generate_episode_outline(cfm_curriculum.scripture_reference, cfm_curriculum.text)
     logging.info(episode_outline.model_dump_json(indent=4))
 
     logging.info("Generating episode")
-    episode = generate_episode(lesson_reference, curriculum_text, episode_outline=episode_outline)
+    episode = generate_episode(cfm_curriculum.scripture_reference, cfm_curriculum.text, episode_outline=episode_outline)
     logging.info(episode.model_dump_json(indent=4))
 
     input("\n\n⚠️⚠️Please review the episode and press enter to continue.⚠️⚠️")
@@ -80,7 +81,7 @@ def main(
     episode.generate_audio_files(pathlib.Path(output_dir))
 
     logging.info("Saving video")
-    episode.save_video(pathlib.Path(output_dir), lesson_reference)
+    episode.save_video(pathlib.Path(output_dir), cfm_curriculum.scripture_reference)
 
     if not upload_to_youtube:
         return
@@ -98,12 +99,12 @@ def main(
 
     logging.info(video_description)
 
-    publish_date = generate_show.youtube.determine_publish_date(lesson_title)
+    publish_date = generate_show.youtube.determine_publish_date(cfm_curriculum.title)
     logging.info("Publishing episode to YouTube")
     video_url = generate_show.youtube.publish_episode_to_youtube(
         output_dir / files.FINAL_VIDEO_FILENAME,
         episode_title=episode.title,
-        scripture_reference=lesson_reference,
+        scripture_reference=cfm_curriculum.scripture_reference,
         video_description=video_description,
         publish_date=publish_date,
     )

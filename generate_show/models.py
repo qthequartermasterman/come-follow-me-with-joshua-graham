@@ -19,60 +19,8 @@ from generate_show.audio import composite_audio_files, create_intro_clip_with_fa
 P = ParamSpec("P")
 Model = TypeVar("Model", bound=pydantic.BaseModel)
 
-
-class Segment(pydantic.BaseModel):
-    """A segment of an episode outline."""
-
-    title: str = pydantic.Field(
-        description=(
-            "The title of the segment providing insight about the content of the segment. This is shown in"
-            " the episode outline as a chapter heading. Do not include the scripture reference in the title. This must"
-            " be less than 40 characters long."
-        )
-    )
-    text: str = pydantic.Field(
-        description=(
-            "The text of the segment, focused on some passage(s) of scripture, along with commentary. The"
-            " commentary may be personal insights, linguistic insights, scholarly commentary, or especially"
-            " connections to General Conference addresses. The text must be doctrinally sound according to the"
-            " official positions of the Church of Jesus Christ of Latter-day Saints. The text should be spiritually"
-            " uplifting and testify of Jesus Christ. Each segment should be about 4-5 minutes (~800-1000 words) long."
-        )
-    )
-    _normalize_segment = pydantic.field_validator("text")(generate_show.narration.add_pronunciation_helpers)
-
-
-class EpisodeOutline(pydantic.BaseModel):
-    """An outline for a podcast episode."""
-
-    title: str = pydantic.Field(
-        description=(
-            "The title of the episode providing insight about the content of the episode, but is still succinct and"
-            " catchy to attract listeners."
-        )
-    )
-    introduction: str = pydantic.Field(
-        description=(
-            "The introduction segment of the episode which provides an insightful and spiritual opening, testifying"
-            " of Jesus Christ."
-        )
-    )
-    segments: list[Segment] = pydantic.Field(
-        description=(
-            "A list of the text of each content segment, each one focused on some passage(s) of scripture, along with"
-            " commentary. The commentary may be personal insights, linguistic insights, scholarly commentary, or"
-            " especially connections to General Conference addresses. Each segment must be doctrinally sound according"
-            " to the official positions of the Church of Jesus Christ of Latter-day Saints. Each segment should be"
-            " spiritually uplifting and testify of Jesus Christ. There should be between 4 to 6 segments."
-        )
-    )
-    closing: str = pydantic.Field(
-        description=(
-            "The profound closing statement of the episode. It might provide a summary of the content in the episode,"
-            " but it must contain major takeaways and a call to action. Encourage users to repent in some way relevant"
-            " to the content of the episode and that will strengthen their relationship with Jesus Christ."
-        )
-    )
+class CacheModel(pydantic.BaseModel):
+    """A pydantic model that can cache its output to a file."""
 
     @classmethod
     def cache_pydantic_model(cls: Self, func: Callable[P, Self]) -> Callable[P, Self]:
@@ -109,6 +57,61 @@ class EpisodeOutline(pydantic.BaseModel):
             return model
 
         return wrapper
+
+
+class Segment(pydantic.BaseModel):
+    """A segment of an episode outline."""
+
+    title: str = pydantic.Field(
+        description=(
+            "The title of the segment providing insight about the content of the segment. This is shown in"
+            " the episode outline as a chapter heading. Do not include the scripture reference in the title. This must"
+            " be less than 40 characters long."
+        )
+    )
+    text: str = pydantic.Field(
+        description=(
+            "The text of the segment, focused on some passage(s) of scripture, along with commentary. The"
+            " commentary may be personal insights, linguistic insights, scholarly commentary, or especially"
+            " connections to General Conference addresses. The text must be doctrinally sound according to the"
+            " official positions of the Church of Jesus Christ of Latter-day Saints. The text should be spiritually"
+            " uplifting and testify of Jesus Christ. Each segment should be about 4-5 minutes (~800-1000 words) long."
+        )
+    )
+    _normalize_segment = pydantic.field_validator("text")(generate_show.narration.add_pronunciation_helpers)
+
+
+class EpisodeOutline(CacheModel):
+    """An outline for a podcast episode."""
+
+    title: str = pydantic.Field(
+        description=(
+            "The title of the episode providing insight about the content of the episode, but is still succinct and"
+            " catchy to attract listeners."
+        )
+    )
+    introduction: str = pydantic.Field(
+        description=(
+            "The introduction segment of the episode which provides an insightful and spiritual opening, testifying"
+            " of Jesus Christ."
+        )
+    )
+    segments: list[Segment] = pydantic.Field(
+        description=(
+            "A list of the text of each content segment, each one focused on some passage(s) of scripture, along with"
+            " commentary. The commentary may be personal insights, linguistic insights, scholarly commentary, or"
+            " especially connections to General Conference addresses. Each segment must be doctrinally sound according"
+            " to the official positions of the Church of Jesus Christ of Latter-day Saints. Each segment should be"
+            " spiritually uplifting and testify of Jesus Christ. There should be between 4 to 6 segments."
+        )
+    )
+    closing: str = pydantic.Field(
+        description=(
+            "The profound closing statement of the episode. It might provide a summary of the content in the episode,"
+            " but it must contain major takeaways and a call to action. Encourage users to repent in some way relevant"
+            " to the content of the episode and that will strengthen their relationship with Jesus Christ."
+        )
+    )
 
 
 class Episode(EpisodeOutline):
