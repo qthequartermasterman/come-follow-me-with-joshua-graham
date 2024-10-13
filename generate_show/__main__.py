@@ -17,14 +17,13 @@ import pydub
 import tqdm
 from typing_extensions import Callable, ParamSpec, Self, TypeVar
 
-import generate_show.youtube
 import generate_show.narration
+import generate_show.youtube
+
 logging.basicConfig(level=logging.INFO)
 
 P = ParamSpec("P")
 Model = TypeVar("Model", bound=pydantic.BaseModel)
-
-
 
 
 EPISODE_OUTLINE_GENERATION_SYSTEM_PROMPT = """\
@@ -275,7 +274,9 @@ class EpisodeOutline(pydantic.BaseModel):
 class Episode(EpisodeOutline):
     """A full podcast episode."""
 
-    _normalize_introduction = pydantic.field_validator("introduction")(generate_show.narration.add_pronunciation_helpers)
+    _normalize_introduction = pydantic.field_validator("introduction")(
+        generate_show.narration.add_pronunciation_helpers
+    )
     _normalize_closing = pydantic.field_validator("closing")(generate_show.narration.add_pronunciation_helpers)
 
     @property

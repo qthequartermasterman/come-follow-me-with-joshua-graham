@@ -1,11 +1,12 @@
 """Narration utilities."""
+
 import itertools
 import logging
 import pathlib
 import re
 import warnings
 
-from elevenlabs import VoiceSettings, ElevenLabs
+from elevenlabs import ElevenLabs, VoiceSettings
 
 # All the proper names in the Book of Mormon should be replaced with the phoneme tags
 NAMES = {
