@@ -1,3 +1,5 @@
+"""Prompting utilities for generating the show."""
+
 import logging
 
 import httpx

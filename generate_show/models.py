@@ -1,3 +1,5 @@
+"""Pydantic models for the podcast episode outline and episode."""
+
 import functools
 import hashlib
 import logging
