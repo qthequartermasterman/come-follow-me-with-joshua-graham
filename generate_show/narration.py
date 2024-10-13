@@ -1,3 +1,4 @@
+"""Narration utilities."""
 import itertools
 import logging
 import pathlib
