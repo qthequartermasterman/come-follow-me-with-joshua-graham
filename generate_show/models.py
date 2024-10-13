@@ -8,11 +8,11 @@ from typing import Callable
 import pydantic
 import tqdm
 from moviepy import editor as mpy
-from typing_extensions import ParamSpec, TypeVar, Self
+from typing_extensions import ParamSpec, Self, TypeVar
 
 import generate_show.narration
 from generate_show import files
-from generate_show.audio import create_intro_clip_with_fades, create_outro_clip_with_fades, composite_audio_files
+from generate_show.audio import composite_audio_files, create_intro_clip_with_fades, create_outro_clip_with_fades
 
 P = ParamSpec("P")
 Model = TypeVar("Model", bound=pydantic.BaseModel)

@@ -149,6 +149,7 @@ def determine_publish_date(episode_week: str) -> datetime.datetime:
 
     Returns:
         The publish date for the episode
+
     """
     date_str = episode_week.split("–")[0].strip() + ", 2024"
     date = datetime.datetime.strptime(date_str, "%B %d, %Y")
@@ -158,8 +159,6 @@ def determine_publish_date(episode_week: str) -> datetime.datetime:
 
     # If the publish date is in the past, then set it to an hour from now
     if publish_date < datetime.datetime.now(datetime.timezone.utc):
-        publish_date = datetime.datetime.now(
-            datetime.timezone.utc
-        ) + datetime.timedelta(hours=1)
+        publish_date = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=1)
 
     return publish_date
