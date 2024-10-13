@@ -84,6 +84,7 @@ def get_authenticated_service_youtube() -> Any:
 
     Raises:
         ValueError: If the GOOGLE_APPLICATION_CREDENTIALS environment variable is not set.
+
     """
     logging.info("Authenticating with YouTube")
     if CLIENT_SECRETS_FILE is None:

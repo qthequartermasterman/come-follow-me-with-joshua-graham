@@ -1,10 +1,13 @@
 """Generate an episode of "Come, Follow Me with Joshua Graham"."""
+
 from __future__ import annotations
 
 import logging
 import os
 import pathlib
 import shutil
+
+import fire
 
 import generate_show.youtube
 from generate_show import files
@@ -14,12 +17,13 @@ from generate_show.prompt import (
     generate_episode_outline,
     generate_video_description,
 )
-import fire
 
 logging.basicConfig(level=logging.INFO)
 
 
-def main(week_number: int, output_dir: str | pathlib.Path = pathlib.Path("../episodes"), upload_to_youtube: bool = True) -> None:
+def main(
+    week_number: int, output_dir: str | pathlib.Path = pathlib.Path("../episodes"), upload_to_youtube: bool = True
+) -> None:
     """Generate an episode of "Come, Follow Me with Joshua Graham".
 
     Args:
@@ -30,13 +34,16 @@ def main(week_number: int, output_dir: str | pathlib.Path = pathlib.Path("../epi
     Raises:
         ValueError: If the `ELEVEN_API_KEY`, `OPENAI_API_KEY`, or `GOOGLE_APPLICATION_CREDENTIALS` environment
             variables are not set.
+
     """
     if not os.getenv("ELEVEN_API_KEY"):
         raise ValueError("Please set the `ELEVEN_API_KEY` environment variable to your ElevenLabs API key.")
     if not os.getenv("OPENAI_API_KEY"):
         raise ValueError("Please set the `OPENAI_API_KEY` environment variable to your OpenAI API key.")
     if not os.getenv("GOOGLE_APPLICATION_CREDENTIALS") and upload_to_youtube:
-        raise ValueError("Please set the `GOOGLE_APPLICATION_CREDENTIALS` environment variable to your Google Cloud credentials.")
+        raise ValueError(
+            "Please set the `GOOGLE_APPLICATION_CREDENTIALS` environment variable to your Google Cloud credentials."
+        )
 
     output_dir = pathlib.Path(output_dir)
 
@@ -54,7 +61,8 @@ def main(week_number: int, output_dir: str | pathlib.Path = pathlib.Path("../epi
     if not output_dir.exists():
         if not master_dir.exists():
             raise FileNotFoundError(
-                f"Master directory not found at {master_dir}. Please create a master directory to use as a template.")
+                f"Master directory not found at {master_dir}. Please create a master directory to use as a template."
+            )
         logging.info("Copying master directory to output directory")
         shutil.copytree(master_dir, output_dir)
 
