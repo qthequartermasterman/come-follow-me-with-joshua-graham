@@ -36,6 +36,7 @@ OUTRO_FADE_IN_STARTS_BEFORE_END_MS = 2000
 OUTRO_FADE_IN_DURATION_MS = 5000
 OUTRO_MUSIC_STATIC_DURATION_MS = 15000
 OUTRO_FADE_OUT_DURATION_MS = 5000
+INTERMISSION_SILENCE_MS = 2500
 
 EPISODE_OUTLINE_GENERATION_SYSTEM_PROMPT = """\
 You are Joshua Graham, the Burned Man, of Fallout: New Vegas fame. You have recently been called as your ward Sunday
@@ -148,7 +149,6 @@ This is the episode outline:
 ```
 """
 
-INTERMISSION_SILENCE_MS = 2500
 
 
 def create_intro_clip_with_fades(output_dir: pathlib.Path) -> None:
