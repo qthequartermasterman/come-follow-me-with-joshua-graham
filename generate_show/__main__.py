@@ -36,7 +36,7 @@ def fetch_curriculum(week_number: int):
     lesson_title = soup.select(".title-number")[0].get_text()
     lesson_reference = soup.select("h1")[0].get_text()
     curriculum_text = soup.find("body").get_text()
-    return curriculum_text, lesson_title, lesson_reference
+    return lesson_title, lesson_reference, curriculum_text
 
 if __name__ == "__main__":
     # Make sure to set the `ELEVEN_API_KEY` environment variable to your ElevenLabs API key
@@ -47,13 +47,7 @@ if __name__ == "__main__":
     CURRICULUM_LINK = f"https://www.churchofjesuschrist.org/study/manual/come-follow-me-for-home-and-church-book-of-mormon-2024/{WEEK_NUMBER}?lang=eng"
     OUTPUT_DIR = pathlib.Path("../episodes")
 
-    logging.info("Fetching curriculum text")
-    response = httpx.get(CURRICULUM_LINK)
-    logging.info("Parsing curriculum text")
-    soup = bs4.BeautifulSoup(response.text, "html.parser")
-    curriculum_text = soup.find("body").get_text()
-    lesson_title = soup.select(".title-number")[0].get_text()
-    lesson_reference = soup.select("h1")[0].get_text()
+    lesson_title, lesson_reference, curriculum_text = fetch_curriculum(WEEK_NUMBER)
 
     publish_date = generate_show.youtube.determine_publish_date(lesson_title)
 
