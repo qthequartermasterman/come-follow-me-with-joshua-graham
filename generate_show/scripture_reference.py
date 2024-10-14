@@ -215,7 +215,7 @@ class ScriptureReference(pydantic.BaseModel, frozen=True):
         match = SCRIPTUREVERSE_REGEX.match(ref)
         if match is None:
             raise ValueError(f"Invalid scripture reference: {ref}")
-        start_book = match.group(1)
+        start_book = match.group(1).strip()
         start_chapter = int(match.group(2))
         start_verse = int(match.group(3)) if match.group(3) else None
         end_chapter = int(match.group(5)) if match.group(5) else None
