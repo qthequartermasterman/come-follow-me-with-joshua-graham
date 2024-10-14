@@ -1,5 +1,7 @@
 """Tests for the scripture_reference module."""
 
+import re
+
 import hypothesis
 import pytest
 from hypothesis import strategies as st
@@ -100,18 +102,18 @@ def test_scripture_reference_round_trip(scripture_ref: scripture_reference.Scrip
                 end_verse=None,
             ),
         ),
+        (
+            "3 Nephi 20–26",
+            scripture_reference.ScriptureReference(
+                start_verse=scripture_reference.Verse(book=scripture_reference.Book("3 Nephi"), chapter=20, verse=None),
+                end_verse=scripture_reference.Verse(book=scripture_reference.Book("3 Nephi"), chapter=26, verse=None),
+            ),
+        ),
     ],
 )
 def test_parse_scripture_reference(ref_str: str, ref_obj: scripture_reference.ScriptureReference) -> None:
     """Test that a scripture reference is parsed correctly."""
     assert scripture_reference.ScriptureReference.from_string(ref_str) == ref_obj
-    assert str(ref_obj) == ref_str
-
-
-# "Jarom 1:1",
-# "Jarom 1:1-2",
-# "Jarom 1:1-2:3",
-# "Jarom 1:1-Jarom 2",
-# "1 Nephi 1:1",
-# "3 Nephi 1:1-4 Nephi 1",
-# "Words of Mormon 1:3",
+    # Dashes and whitespace are stripped, so we need to account for that when doing our comparison
+    normalized_string = re.sub(r"[-–]", "-", re.sub(r"\s+", " ", ref_str))
+    assert str(ref_obj) == normalized_string

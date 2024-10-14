@@ -20,7 +20,7 @@ P = ParamSpec("P")
 # TODO: Support JS-H in this regex
 # TODO: support commas
 SCRIPTUREVERSE_REGEX = re.compile(
-    r"(\d*\s*[a-zA-Z\s]+)\s*(\d+)(?::(\d+))?(\s*-\s*(\d*\s*[a-zA-Z\s]+)?\s*(\d+)(?:\s*([a-z]+)\s*(\d+))?(?::(\d+))?)?"
+    r"(\d*\s*[a-zA-Z\s]+)\s*(\d+)(?::(\d+))?(\s*[–-]\s*(\d*\s*[a-zA-Z\s]+)?\s*(\d+)(?:\s*([a-z]+)\s*(\d+))?(?::(\d+))?)?"
 )
 
 
@@ -167,6 +167,13 @@ class ScriptureReference(pydantic.BaseModel, frozen=True):
         if self.end_verse is None or self.start_verse == self.end_verse:
             return string
         string += "-"
+        if (
+            self.start_verse.book == self.end_verse.book
+            and self.start_verse.verse is None
+            and self.end_verse.verse is None
+        ):
+            string += str(self.end_verse.chapter)
+            return string
         if self.start_verse.book != self.end_verse.book or self.end_verse.verse is None:
             string += str(self.end_verse)
             return string
@@ -230,7 +237,7 @@ class ScriptureReference(pydantic.BaseModel, frozen=True):
 
         # Match group 6 does double duty. It's the end chapter is there is also a verse after a second colon, or it's
         # the end verse if there is no second colon.
-        if end_chapter is not None and end_verse is None and end_book is None:
+        if ref.count(":") == 1 and end_chapter is not None and end_verse is None and end_book is None:
             end_verse = end_chapter
             end_chapter = start_chapter
 
@@ -280,6 +287,13 @@ class ScriptureReference(pydantic.BaseModel, frozen=True):
             starting_verse = Verse(book=self.start_verse.book, chapter=self.start_verse.chapter, verse=1)
         else:
             starting_verse = self.start_verse
+        if self.end_verse.verse is None:
+            # Ending verse should be the final verse in the end_verse's chapter.
+            # TODO: surely there's a better way to extract the last element from a dictionary that creating a list
+            #  of its keys
+            ending_verse = list(scriptures[self.end_verse.book][self.end_verse.chapter].keys())[-1]
+        else:
+            ending_verse = self.end_verse
 
         book_order: dict[Book, int] = {book: idx for idx, book in enumerate(Book)}
 
@@ -298,7 +312,7 @@ class ScriptureReference(pydantic.BaseModel, frozen=True):
                     if found_end:
                         break
                     verse_texts.append(f"{str(verse)} {text}")
-                    if verse == self.end_verse:
+                    if verse == ending_verse:
                         found_end = True
                 if found_end:
                     break
