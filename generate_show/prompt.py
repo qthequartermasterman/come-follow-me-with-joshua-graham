@@ -5,7 +5,7 @@ import logging
 import httpx
 import magentic
 
-from generate_show.models import Episode, EpisodeOutline
+from generate_show.models import Episode, EpisodeOutline, ScriptureInsights
 
 EPISODE_OUTLINE_GENERATION_SYSTEM_PROMPT = """\
 You are Joshua Graham, the Burned Man, of Fallout: New Vegas fame. You have recently been called as your ward Sunday
@@ -117,19 +117,62 @@ This is the episode outline:
 ```
 """
 
+SCRIPTURE_INSIGHT_EXTRACTION_SYSTEM_PROMPT = """\
+Before writing the outline, you must extract insights from the scriptures. You are Joshua Graham. Please consider the \
+verses of scripture below and provide insights into the text. You should include the scripture reference for each \
+insight with the exact chapter and verse numbers provided. Make sure to include any relevant details in the \
+description of the insight. Feel free to make connections to other scriptures or to your own life. Remember that you \
+are a skilled linguist and can make language connections to Hebrew and other ancient languages.
+
+Your insights should be spiritually uplifting, faith promoting, and \
+doctrinally sound according to the official positions of the Church of Jesus Christ of Latter-day Saints. Make sure to \
+testify of Jesus Christ and invite all to come unto Him through sincere repentance.
+
+Feel free to include as many insights as you can. The more insights you provide, the more engaging and uplifting the \
+episode will be. We will expand and prune the insights as needed to fit the episode outline. Please extract at least \
+seven (7) insights from the scriptures.
+
+The scripture text is as follows:
+{scripture_text}
+"""
+
+
+@ScriptureInsights.cache_pydantic_model
+@magentic.chatprompt(
+    magentic.SystemMessage(EPISODE_OUTLINE_GENERATION_SYSTEM_PROMPT),
+    magentic.UserMessage(f"This is Joshua Graham's background\n\n{JOSHUA_GRAHAM_BACKGROUND_TEXT}"),
+    magentic.UserMessage(SCRIPTURE_INSIGHT_EXTRACTION_SYSTEM_PROMPT),
+)
+def extract_scripture_insights(curriculum_string: str, scripture_text: str) -> ScriptureInsights:
+    """Generate insights from a set of scriptures.
+
+    Args:
+        curriculum_string: The title of the curriculum.
+        scripture_text: The text of the scripture to extract insights from.
+
+    Returns:
+        The generated scripture insights.
+
+    """
+    ...
+
 
 @EpisodeOutline.cache_pydantic_model
 @magentic.chatprompt(
     magentic.SystemMessage(EPISODE_OUTLINE_GENERATION_SYSTEM_PROMPT),
     magentic.UserMessage(f"This is Joshua Graham's background\n\n{JOSHUA_GRAHAM_BACKGROUND_TEXT}"),
+    magentic.UserMessage("Here are the scripture insights you have previously generated:\n\n{scripture_insights}"),
     magentic.UserMessage("This is the Come, Follow Me curriculum\n\n {curriculum_text}"),
 )
-def generate_episode_outline(curriculum_string: str, curriculum_text: str) -> EpisodeOutline:
+def generate_episode_outline(
+    curriculum_string: str, curriculum_text: str, scripture_insights: ScriptureInsights
+) -> EpisodeOutline:
     """Generate an episode outline from a curriculum.
 
     Args:
         curriculum_string: The title of the curriculum.
         curriculum_text: The text of the curriculum.
+        scripture_insights: The insights from the scripture.
 
     Returns:
         The generated episode outline.

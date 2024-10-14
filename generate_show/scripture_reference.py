@@ -234,6 +234,11 @@ class ScriptureReference(pydantic.BaseModel, frozen=True):
             end_verse = end_chapter
             end_chapter = start_chapter
 
+        # Replace any whitespace characters (like \xa0) with spaces
+        start_book = re.sub(r"\s+", " ", start_book)
+        if end_book is not None:
+            end_book = re.sub(r"\s+", " ", end_book)
+
         end_book_obj = Book(end_book if end_book is not None else start_book)
 
         if end_chapter is None and end_verse is None:

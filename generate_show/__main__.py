@@ -6,21 +6,24 @@ import datetime
 import logging
 import os
 import pathlib
+import re
 import shutil
 
 import fire
 import simple_term_menu
 
 import generate_show.youtube
-from generate_show import files
+from generate_show import files, scripture_reference
 from generate_show.curriculum import ComeFollowMeCurriculum, fetch_curriculum, get_all_curriculum_for_year
 from generate_show.prompt import (
+    extract_scripture_insights,
     generate_episode,
     generate_episode_outline,
     generate_video_description,
 )
 
-logging.basicConfig(level=logging.INFO)
+LOGGER = logging.getLogger()
+LOGGER.setLevel(logging.INFO)
 
 
 def curriculum_menu() -> ComeFollowMeCurriculum:
@@ -84,36 +87,47 @@ def main(
     )
 
     master_dir = output_dir / files.MASTER_DIRECTORY_NAME
-    lesson_dir = output_dir / (cfm_curriculum.scripture_reference.replace(" ", ""))
+    lesson_dir = output_dir / (re.sub(r"\s+", "_", cfm_curriculum.scripture_reference))
     # Create the output directory using the master directory as a template
     if not lesson_dir.exists():
         if not master_dir.exists():
             raise FileNotFoundError(
                 f"Master directory not found at {master_dir}. Please create a master directory to use as a template."
             )
-        logging.info("Copying master directory to output directory")
+        LOGGER.info("Copying master directory to output directory")
         shutil.copytree(master_dir, lesson_dir)
 
-    logging.info("Generating episode outline")
-    episode_outline = generate_episode_outline(cfm_curriculum.scripture_reference, cfm_curriculum.text)
-    logging.info(episode_outline.model_dump_json(indent=4))
+    LOGGER.info("Generating scripture insights")
+    scripture_insights = extract_scripture_insights(
+        curriculum_string=cfm_curriculum.scripture_reference,
+        scripture_text=scripture_reference.ScriptureReference.from_string(
+            cfm_curriculum.scripture_reference
+        ).get_scripture_text(),
+    )
+    LOGGER.info(scripture_insights.model_dump_json(indent=4))
 
-    logging.info("Generating episode")
+    LOGGER.info("Generating episode outline")
+    episode_outline = generate_episode_outline(
+        cfm_curriculum.scripture_reference, cfm_curriculum.text, scripture_insights=scripture_insights
+    )
+    LOGGER.info(episode_outline.model_dump_json(indent=4))
+
+    LOGGER.info("Generating episode")
     episode = generate_episode(cfm_curriculum.scripture_reference, cfm_curriculum.text, episode_outline=episode_outline)
-    logging.info(episode.model_dump_json(indent=4))
+    LOGGER.info(episode.model_dump_json(indent=4))
 
     input("\n\n⚠️⚠️Please review the episode and press enter to continue.⚠️⚠️")
 
-    logging.info("Generating audio files")
+    LOGGER.info("Generating audio files")
     episode.generate_audio_files(lesson_dir)
 
-    logging.info("Saving video")
+    LOGGER.info("Saving video")
     episode.save_video(lesson_dir, cfm_curriculum.scripture_reference)
 
     if not upload_to_youtube:
         return
 
-    logging.info("Generating video description")
+    LOGGER.info("Generating video description")
     video_description = generate_video_description(episode=episode)
 
     if (timestamps := (lesson_dir / files.TIMESTAMPS_FILENAME)).exists():
@@ -121,7 +135,7 @@ def main(
 
     publish_date = generate_show.youtube.determine_publish_date(cfm_curriculum)
 
-    logging.info(video_description)
+    LOGGER.info(video_description)
 
     input(
         "\n\n⚠️⚠️Please review the video description.⚠️⚠️\n\nYou are about to upload this video to YouTube.\n\n"
@@ -130,7 +144,7 @@ def main(
         "Please hit enter to continue, and when prompted, authenticate with YouTube..."
     )
 
-    logging.info("Publishing episode to YouTube")
+    LOGGER.info("Publishing episode to YouTube")
     video_url = generate_show.youtube.publish_episode_to_youtube(
         lesson_dir / files.FINAL_VIDEO_FILENAME,
         episode_title=episode.title,
@@ -138,7 +152,7 @@ def main(
         video_description=video_description,
         publish_date=publish_date,
     )
-    logging.info("Video published successfully: %s", video_url)
+    LOGGER.info("Video published successfully: %s", video_url)
 
 
 if __name__ == "__main__":

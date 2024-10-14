@@ -60,6 +60,36 @@ class CacheModel(pydantic.BaseModel):
         return wrapper
 
 
+class ScriptureInsight(pydantic.BaseModel):
+    """An insight into a scripture passage."""
+
+    reference: str = pydantic.Field(
+        description=(
+            "The reference to the scripture that the insight is based on. This should be a valid scripture reference"
+            " in the format 'Book Chapter:Verse', or if it's a range of verses, 'Book Chapter:Verse-Chapter:Verse'."
+        )
+    )
+    insight: str = pydantic.Field(
+        description=(
+            "The insight into the scripture passage. This should be doctrinally sound according to the official"
+            " positions of the Church of Jesus Christ of Latter-day Saints. The insight should be spiritually uplifting"
+            " and testify of Jesus Christ."
+        )
+    )
+
+
+class ScriptureInsights(CacheModel):
+    """A collection of insights into scripture passages."""
+
+    insights: list[ScriptureInsight] = pydantic.Field(
+        description=(
+            "A list of insights into scripture passages. Each insight should be based on a specific scripture"
+            " reference and should be doctrinally sound according to the official positions of the Church of Jesus"
+            " Christ of Latter-day Saints. Each insight should be spiritually uplifting and testify of Jesus Christ."
+        )
+    )
+
+
 class Segment(pydantic.BaseModel):
     """A segment of an episode outline."""
 
