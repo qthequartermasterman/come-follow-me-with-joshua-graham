@@ -11,7 +11,7 @@ import pydantic
 from annotated_types import Gt
 from typing_extensions import Annotated, Self
 
-# TODO: Support end book and JS-H in this regex
+# TODO: Support JS-H in this regex
 # TODO: support commas
 SCRIPTUREVERSE_REGEX = re.compile(
     r"(\d*\s*[a-zA-Z\s]+)\s*(\d+)(?::(\d+))?(\s*-\s*(\d*\s*[a-zA-Z\s]+)?\s*(\d+)(?:\s*([a-z]+)\s*(\d+))?(?::(\d+))?)?"
@@ -237,7 +237,6 @@ class ScriptureReference(pydantic.BaseModel, frozen=True):
         else:
             end_verse_obj = Verse(book=end_book_obj, chapter=end_chapter, verse=end_verse)
 
-        # TODO: support end_book
         return cls(
             start_verse=Verse(book=Book(start_book), chapter=start_chapter, verse=start_verse),
             end_verse=end_verse_obj,
