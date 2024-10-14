@@ -14,7 +14,7 @@ from typing_extensions import Annotated, Self
 # TODO: Support end book and JS-H in this regex
 # TODO: support commas
 SCRIPTUREVERSE_REGEX = re.compile(
-    r"(\d*\s*[a-zA-Z\s]+)\s*(\d+)(?::(\d+))?(\s*-\s*(\d+)(?:\s*([a-z]+)\s*(\d+))?(?::(\d+))?)?"
+    r"(\d*\s*[a-zA-Z\s]+)\s*(\d+)(?::(\d+))?(\s*-\s*(\d*\s*[a-zA-Z\s]+)?\s*(\d+)(?:\s*([a-z]+)\s*(\d+))?(?::(\d+))?)?"
 )
 
 
@@ -218,21 +218,24 @@ class ScriptureReference(pydantic.BaseModel, frozen=True):
         start_book = match.group(1).strip()
         start_chapter = int(match.group(2))
         start_verse = int(match.group(3)) if match.group(3) else None
-        end_chapter = int(match.group(5)) if match.group(5) else None
-        end_verse = int(match.group(8)) if match.group(8) else None
+        end_book = match.group(5).strip() if match.group(5) else None
+        end_chapter = int(match.group(6)) if match.group(6) else None
+        end_verse = int(match.group(9)) if match.group(9) else None
 
-        # Match group 5 does double duty. It's the end chapter is there is also a verse after a second colon, or it's
+        # Match group 6 does double duty. It's the end chapter is there is also a verse after a second colon, or it's
         # the end verse if there is no second colon.
-        if end_chapter is not None and end_verse is None:
+        if end_chapter is not None and end_verse is None and end_book is None:
             end_verse = end_chapter
             end_chapter = start_chapter
+
+        end_book_obj = Book(end_book if end_book is not None else start_book)
 
         if end_chapter is None and end_verse is None:
             end_verse_obj = None
         elif end_chapter is None:
-            end_verse_obj = Verse(book=Book(start_book), chapter=start_chapter, verse=end_verse)
+            end_verse_obj = Verse(book=end_book_obj, chapter=start_chapter, verse=end_verse)
         else:
-            end_verse_obj = Verse(book=Book(start_book), chapter=end_chapter, verse=end_verse)
+            end_verse_obj = Verse(book=end_book_obj, chapter=end_chapter, verse=end_verse)
 
         # TODO: support end_book
         return cls(
