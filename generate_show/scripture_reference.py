@@ -166,10 +166,10 @@ class ScriptureReference(pydantic.BaseModel, frozen=True):
             return string
         if self.start_verse.chapter != self.end_verse.chapter:
             string += f"{self.end_verse.chapter}:"
-        if self.start_verse.verse != self.end_verse.verse and self.end_verse.verse is not None:
-            string += f"{self.end_verse.verse}"
-        if string[-1] == ":":
+        if self.end_verse.verse is None:
             string = string[:-1]
+        else:
+            string += f"{self.end_verse.verse}"
         return string
 
     @pydantic.model_validator(mode="after")
