@@ -33,9 +33,6 @@ def test_scripture_reference_with_none_equals_same_start_and_end(verse_ref: scri
 @hypothesis.given(scripture_ref=...)
 def test_scripture_reference_round_trip(scripture_ref: scripture_reference.ScriptureReference) -> None:
     """Test that a ScriptureReference object can be converted to a string and back."""
-    hypothesis.assume(
-        scripture_ref.end_verse is None or scripture_ref.start_verse.book == scripture_ref.end_verse.book
-    )  # TODO: support end_book
     ref_str = str(scripture_ref)
     new_scripture_ref = scripture_reference.ScriptureReference.from_string(ref_str)
     assert scripture_ref == new_scripture_ref
