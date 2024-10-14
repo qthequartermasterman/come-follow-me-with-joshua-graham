@@ -3,13 +3,19 @@
 Most of these eventually should be ported over to pyscripture, but for now they are here.
 """
 
+import collections
 import enum
+import functools
+import hashlib
 import re
-from typing import Any
+from typing import Any, Callable
 
 import pydantic
+import requests
 from annotated_types import Gt
-from typing_extensions import Annotated, Self
+from typing_extensions import Annotated, ParamSpec, Self
+
+P = ParamSpec("P")
 
 # TODO: Support JS-H in this regex
 # TODO: support commas
@@ -241,3 +247,125 @@ class ScriptureReference(pydantic.BaseModel, frozen=True):
             start_verse=Verse(book=Book(start_book), chapter=start_chapter, verse=start_verse),
             end_verse=end_verse_obj,
         )
+
+    def get_scripture_text(self) -> str:
+        """Get the text of the scripture reference.
+
+        Returns:
+            The text of the scripture reference.
+
+        """
+        # TODO: Use a more optimized data structure for this, so I don't have to iterate the entire standard works
+        #  in the worst case. Despite the poor asymptotic complexity, this still seems to be fast enough for now.
+        scriptures = get_scriptures()
+        if self.end_verse is None:
+            if self.start_verse.verse is not None:
+                verse_text = scriptures[self.start_verse.book][self.start_verse.chapter].get(self.start_verse)
+                return f"{str(self.start_verse)} {verse_text}"
+            else:
+                return "\n".join(
+                    f"{str(verse)} {text}"
+                    for verse, text in scriptures[self.start_verse.book][self.start_verse.chapter].items()
+                )
+
+        started = False
+        found_end = False
+        verse_texts = []
+        if self.start_verse.verse is None:
+            starting_verse = Verse(book=self.start_verse.book, chapter=self.start_verse.chapter, verse=1)
+        else:
+            starting_verse = self.start_verse
+
+        book_order: dict[Book, int] = {book: idx for idx, book in enumerate(Book)}
+
+        for book, chapters in scriptures.items():
+            if book_order[book] < book_order[starting_verse.book]:
+                continue
+            for chapter, verses in chapters.items():
+                if book == starting_verse.book and chapter < starting_verse.chapter:
+                    continue
+                for verse, text in verses.items():
+                    if not started:
+                        if verse == starting_verse:
+                            started = True
+                        else:
+                            continue
+                    if found_end:
+                        break
+                    verse_texts.append(f"{str(verse)} {text}")
+                    if verse == self.end_verse:
+                        found_end = True
+                if found_end:
+                    break
+            if found_end:
+                break
+
+        return "\n".join(verse_texts)
+
+
+def expected_hash(expected_sha256_hash: str) -> Callable[[Callable[P, str]], Callable[P, str]]:
+    """Decorate a function to check that it returns a string with a specific hash.
+
+    Args:
+        expected_sha256_hash: The expected sha256 hash of the string returned from the decorated function.
+
+    Raises:
+        ValueError: If the hash of the returned string does not match the expected hash.
+
+    Returns:
+        A decorator that checks that the returned string has the expected hash.
+
+    """
+
+    def decorator(func: Callable[P, str]) -> Callable[P, str]:
+        @functools.wraps(func)
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> str:
+            downloaded_text = func(*args, **kwargs)
+            actual_sha256_hash = hashlib.sha256(downloaded_text.encode()).hexdigest()
+            if actual_sha256_hash != expected_sha256_hash:
+                raise ValueError(
+                    f"When calling {func}, Expected hash {expected_sha256_hash}, but got {actual_sha256_hash}"
+                )
+            return downloaded_text
+
+        return wrapper
+
+    return decorator
+
+
+@functools.lru_cache(maxsize=1)
+@expected_hash(
+    expected_sha256_hash="ccbd4765243daafcf5e8536d421a93cc7037e86d6a067bfaa4c55d8f0de5ea6e"  # pragma: allowlist secret
+)
+def download_text() -> str:
+    """Download text of all scripture from GitHub.
+
+    Returns:
+        All scripture text as a single string.
+
+    """
+    req = requests.get("http://raw.githubusercontent.com/beandog/lds-scriptures/master/text/lds-scriptures.txt")
+    return req.text
+
+
+@functools.lru_cache(maxsize=1)
+def get_scriptures() -> dict[Book, dict[int, dict[Verse, str]]]:
+    """Get the full text of the scriptures.
+
+    The data structure is nested dicts
+    {Book: {Chapter: {Verse: Text}}}
+
+    Returns:
+        The full text of the scriptures.
+
+    """
+    text = download_text()
+    lines = text.splitlines()
+    parsed = dict([tuple(t.split("     ", maxsplit=1)) for t in lines])
+    # The REGEX doesn't currently support JS-Mathew or JS-History.
+    parsed = {k.strip(): v.strip() for k, v in parsed.items() if "Joseph Smith" not in k}
+    scriptures: dict[Book, dict[int, dict[Verse, str]]] = collections.defaultdict(lambda: collections.defaultdict(dict))
+    for ref, text in parsed.items():
+        ref = ScriptureReference.from_string(ref)
+        scriptures[ref.start_verse.book][ref.start_verse.chapter][ref.start_verse] = text
+    return scriptures
