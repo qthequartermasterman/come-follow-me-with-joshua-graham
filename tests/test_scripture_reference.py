@@ -109,11 +109,40 @@ def test_scripture_reference_round_trip(scripture_ref: scripture_reference.Scrip
                 end_verse=scripture_reference.Verse(book=scripture_reference.Book("3 Nephi"), chapter=26, verse=None),
             ),
         ),
+        (
+            "Joseph Smith—History 1:1-26",
+            scripture_reference.ScriptureReference(
+                start_verse=scripture_reference.Verse(
+                    book=scripture_reference.Book("Joseph Smith—History"), chapter=1, verse=1
+                ),
+                end_verse=scripture_reference.Verse(
+                    book=scripture_reference.Book("Joseph Smith—History"), chapter=1, verse=26
+                ),
+            ),
+        ),
+        (
+            "Joseph Smith-History 1:1-26",
+            scripture_reference.ScriptureReference(
+                start_verse=scripture_reference.Verse(
+                    book=scripture_reference.Book("Joseph Smith—History"), chapter=1, verse=1
+                ),
+                end_verse=scripture_reference.Verse(
+                    book=scripture_reference.Book("Joseph Smith—History"), chapter=1, verse=26
+                ),
+            ),
+        ),
     ],
 )
 def test_parse_scripture_reference(ref_str: str, ref_obj: scripture_reference.ScriptureReference) -> None:
     """Test that a scripture reference is parsed correctly."""
     assert scripture_reference.ScriptureReference.from_string(ref_str) == ref_obj
     # Dashes and whitespace are stripped, so we need to account for that when doing our comparison
-    normalized_string = re.sub(r"[-–]", "-", re.sub(r"\s+", " ", ref_str))
+    joseph_smith_match = re.search(rf"Joseph Smith{scripture_reference.DASHES_REGEX}", ref_str)
+    normalized_string = ref_str
+    sentinel = "SENTINEL"
+    if joseph_smith_match:
+        normalized_string = re.sub(rf"Joseph Smith{scripture_reference.DASHES_REGEX}", sentinel, normalized_string)
+    normalized_string = re.sub(scripture_reference.DASHES_REGEX, "-", re.sub(r"\s+", " ", normalized_string))
+    if joseph_smith_match:
+        normalized_string = normalized_string.replace(sentinel, "Joseph Smith—")
     assert str(ref_obj) == normalized_string

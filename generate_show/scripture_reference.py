@@ -17,10 +17,11 @@ from typing_extensions import Annotated, ParamSpec, Self
 
 P = ParamSpec("P")
 
-# TODO: Support JS-H in this regex
 # TODO: support commas
+DASHES_REGEX = r"[–\-—-]"
+BOOK_NAME_REGEX = rf"(?:\d*\s*[a-zA-Z\s]+|Joseph Smith{DASHES_REGEX}(?:History|Matthew))"
 SCRIPTUREVERSE_REGEX = re.compile(
-    r"(\d*\s*[a-zA-Z\s]+)\s*(\d+)(?::(\d+))?(\s*[–-]\s*(\d*\s*[a-zA-Z\s]+)?\s*(\d+)(?:\s*([a-z]+)\s*(\d+))?(?::(\d+))?)?"
+    rf"({BOOK_NAME_REGEX})\s*(\d+)(?::(\d+))?(\s*{DASHES_REGEX}\s*({BOOK_NAME_REGEX})?\s*(\d+)(?:\s*([a-z]+)\s*(\d+))?(?::(\d+))?)?"
 )
 
 
@@ -112,6 +113,8 @@ class Book(str, enum.Enum):
     MOSES = "Moses"
     ABRAHAM = "Abraham"
     AOF = "Articles of Faith"
+    JOSEPH_SMITH_HISTORY = "Joseph Smith—History"
+    JOSEPH_SMITH_MATTHEW = "Joseph Smith—Matthew"
 
 
 class Verse(pydantic.BaseModel, frozen=True):
@@ -243,8 +246,12 @@ class ScriptureReference(pydantic.BaseModel, frozen=True):
 
         # Replace any whitespace characters (like \xa0) with spaces
         start_book = re.sub(r"\s+", " ", start_book)
+        start_book = re.sub(rf"Joseph Smith{DASHES_REGEX}", "Joseph Smith—", start_book)
+        # start_book = start_book.replace("Joseph Smith-", "Joseph Smith—")
         if end_book is not None:
             end_book = re.sub(r"\s+", " ", end_book)
+            # end_book = end_book.replace("Joseph Smith-", "Joseph Smith—")
+            end_book = re.sub(rf"Joseph Smith{DASHES_REGEX}", "Joseph Smith—", end_book)
 
         end_book_obj = Book(end_book if end_book is not None else start_book)
 
