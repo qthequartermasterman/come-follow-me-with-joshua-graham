@@ -11,15 +11,11 @@ import shutil
 
 import fire
 import simple_term_menu
-import tqdm
 
 import generate_show.youtube
-from generate_show import files, scripture_reference, strongs
+from generate_show import files, prompt
 from generate_show.curriculum import ComeFollowMeCurriculum, fetch_curriculum, get_all_curriculum_for_year
-from generate_show.models import ScriptureInsights
 from generate_show.prompt import (
-    extract_language_insights,
-    extract_scripture_insights,
     generate_episode,
     generate_episode_outline,
     generate_video_description,
@@ -101,36 +97,17 @@ def main(
         shutil.copytree(master_dir, lesson_dir)
 
     LOGGER.info("Generating scripture insights")
-    strongs_dictionary = strongs.get_strongs()
-    scripture_ref = scripture_reference.ScriptureReference.from_string(cfm_curriculum.scripture_reference)
-    single_chapter = scripture_ref.split_chapters()
-    combined_scripture_insights = []
-    for chapter in tqdm.tqdm(single_chapter, desc="Fetching scripture text"):
-        scripture_text = chapter.get_scripture_text()
-        strongs_references = strongs_dictionary.find_relevant_strongs_entries(scripture_text)
-        scripture_insights = extract_scripture_insights(
-            curriculum_string=cfm_curriculum.scripture_reference,
-            scripture_text=scripture_text,
-        )
-        combined_scripture_insights.append(scripture_insights)
-        language_insights = extract_language_insights(
-            curriculum_string=cfm_curriculum.scripture_reference,
-            scripture_text=scripture_text,
-            strongs_entries=strongs_references,
-        )
-        combined_scripture_insights.append(language_insights)
-    # Create a new Scripture Insights object that's the composite of each chapter.
-    scripture_insights = ScriptureInsights.compile_insights(*combined_scripture_insights)
+    scripture_insights = prompt.ScriptureInsightsFactory().generate_scripture_insights(cfm_curriculum)
     LOGGER.info(scripture_insights.model_dump_json(indent=4))
 
     LOGGER.info("Generating episode outline")
     episode_outline = generate_episode_outline(
-        cfm_curriculum.scripture_reference, cfm_curriculum.text, scripture_insights=scripture_insights
+        cfm_curriculum.scripture_reference, scripture_insights=scripture_insights
     )
     LOGGER.info(episode_outline.model_dump_json(indent=4))
 
     LOGGER.info("Generating episode")
-    episode = generate_episode(cfm_curriculum.scripture_reference, cfm_curriculum.text, episode_outline=episode_outline)
+    episode = generate_episode(cfm_curriculum.scripture_reference, episode_outline=episode_outline)
     LOGGER.info(episode.model_dump_json(indent=4))
 
     input("\n\n⚠️⚠️Please review the episode and press enter to continue.⚠️⚠️")
