@@ -333,6 +333,76 @@ class ScriptureReference(pydantic.BaseModel, frozen=True):
 
         return "\n".join(verse_texts)
 
+    def split_chapters(self) -> list["ScriptureReference"]:
+        """Split a scripture reference spanning multiple chapters or books into individual chapter references.
+
+        Returns:
+            A list of ScriptureReference objects, one for each chapter in the range, handling cases where the reference
+            spans multiple books.
+
+        """
+        scripture_references = []
+
+        # If the reference is within a single book and chapter, return it as-is
+        if self.end_verse is None or (
+            self.start_verse.book == self.end_verse.book and self.start_verse.chapter == self.end_verse.chapter
+        ):
+            return [self]
+
+        current_chapter = self.start_verse.chapter
+
+        # Assuming this returns the entire structure of scriptures, books, chapters, and verses
+        scriptures = get_scriptures()
+        book_order: dict[Book, int] = {book: idx for idx, book in enumerate(Book)}  # Order books for comparison
+
+        # Handle the first partial chapter (starting from start_verse)
+        scripture_references.append(
+            ScriptureReference(
+                start_verse=self.start_verse,
+                end_verse=Verse(
+                    book=self.start_verse.book,
+                    chapter=current_chapter,
+                    verse=None,  # End at the last verse in the chapter
+                ),
+            )
+        )
+
+        # Now handle all chapters in between
+        started = False
+        for book, chapters in scriptures.items():
+            if book_order[book] < book_order[self.start_verse.book] or (
+                started and book_order[book] > book_order[self.end_verse.book]
+            ):
+                continue
+
+            if book == self.start_verse.book and not started:
+                current_chapter = self.start_verse.chapter + 1
+                started = True
+            else:
+                current_chapter = 1  # Start at the first chapter of the next book
+
+            while current_chapter <= len(chapters):
+                if book == self.end_verse.book and current_chapter == self.end_verse.chapter:
+                    # Handle the last partial chapter (ending at end_verse)
+                    scripture_references.append(
+                        ScriptureReference(
+                            start_verse=Verse(book=book, chapter=current_chapter, verse=1), end_verse=self.end_verse
+                        )
+                    )
+                    break
+
+                # Handle full chapters
+                scripture_references.append(
+                    ScriptureReference(
+                        start_verse=Verse(book=book, chapter=current_chapter, verse=1),
+                        end_verse=Verse(book=book, chapter=current_chapter, verse=None),
+                    )
+                )
+
+                current_chapter += 1
+
+        return scripture_references
+
 
 def expected_hash(expected_sha256_hash: str) -> Callable[[Callable[P, str]], Callable[P, str]]:
     """Decorate a function to check that it returns a string with a specific hash.

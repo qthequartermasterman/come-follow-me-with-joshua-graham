@@ -47,7 +47,7 @@ class CacheModel(pydantic.BaseModel):
                 **kwargs: The keyword arguments to the function.
 
             """
-            args_hash = hashlib.sha256((str(args) + str(kwargs)).encode("utf-8")).hexdigest()[:16]
+            args_hash = hashlib.sha256((cls.__name__ + str(args) + str(kwargs)).encode("utf-8")).hexdigest()[:16]
             path: pathlib.Path = pathlib.Path("../.cache") / f"{cls.__name__}-{args_hash}.json"
             if path.exists():
                 logging.info("Cache hit for %s. Using cached %s", path, cls.__name__)
@@ -88,6 +88,13 @@ class ScriptureInsights(CacheModel):
             " Christ of Latter-day Saints. Each insight should be spiritually uplifting and testify of Jesus Christ."
         )
     )
+
+    @classmethod
+    def compile_insights(cls, *insights: "ScriptureInsights") -> "ScriptureInsights":
+        """Compile the insights into a single text string."""
+        insights_combined = [insight for insight_set in insights for insight in insight_set.insights]
+        insights_combined = list(sorted(insights_combined, key=lambda insight: insight.reference))
+        return cls(insights=insights_combined)
 
 
 class Segment(pydantic.BaseModel):

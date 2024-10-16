@@ -5,6 +5,7 @@ import logging
 import httpx
 import magentic
 
+from generate_show import strongs
 from generate_show.models import Episode, EpisodeOutline, ScriptureInsights
 
 EPISODE_OUTLINE_GENERATION_SYSTEM_PROMPT = """\
@@ -136,6 +137,28 @@ The scripture text is as follows:
 {scripture_text}
 """
 
+LANGUAGE_INSIGHT_EXTRACTION_SYSTEM_PROMPT = """\
+Before writing the outline, you must extract insights from the scriptures. You are Joshua Graham. Please consider the \
+verses of scripture below and provide insights into the text. You should include the scripture reference for each \
+insight with the exact chapter and verse numbers provided. Make sure to include any relevant details in the \
+description of the insight. Focus on the language of the scriptures and make connections to Hebrew and other ancient \
+languages. Use the Strong's Hebrew dictionary as a reference, but you're welcome to make other connections. Do not \
+include any insights that are not relevant to the language of the scriptures. Discuss vocabulary and/or grammar, and \
+why it provides additional insight on the verses. Remember that you are a skilled linguist and can make language \
+connections to Hebrew and other ancient languages.
+
+Your insights should be spiritually uplifting, faith promoting, and \
+doctrinally sound according to the official positions of the Church of Jesus Christ of Latter-day Saints. Make sure to \
+testify of Jesus Christ and invite all to come unto Him through sincere repentance.
+
+Feel free to include as many insights as you can. The more insights you provide, the more engaging and uplifting the \
+episode will be. We will later expand and prune the insights as needed to fit the episode outline. Please extract at \
+least seven (7) insights from the scriptures.
+
+The scripture text is as follows:
+{scripture_text}
+"""
+
 
 @ScriptureInsights.cache_pydantic_model
 @magentic.chatprompt(
@@ -149,6 +172,34 @@ def extract_scripture_insights(curriculum_string: str, scripture_text: str) -> S
     Args:
         curriculum_string: The title of the curriculum.
         scripture_text: The text of the scripture to extract insights from.
+
+    Returns:
+        The generated scripture insights.
+
+    """
+    ...
+
+
+@ScriptureInsights.cache_pydantic_model
+@magentic.chatprompt(
+    magentic.SystemMessage(EPISODE_OUTLINE_GENERATION_SYSTEM_PROMPT),
+    magentic.UserMessage(f"This is Joshua Graham's background\n\n{JOSHUA_GRAHAM_BACKGROUND_TEXT}"),
+    magentic.UserMessage(
+        "Here are some entries from Strong's Hebrew Dictionary that may or may not be relevant. If they're not "
+        "relevant, ignore them. If they may provide insight, feel free to use them in your insights."
+        "\n\n{strongs_entries}"
+    ),
+    magentic.UserMessage(LANGUAGE_INSIGHT_EXTRACTION_SYSTEM_PROMPT),
+)
+def extract_language_insights(
+    curriculum_string: str, scripture_text: str, strongs_entries: dict[str, strongs.HebrewSummary]
+) -> ScriptureInsights:
+    """Generate language insights from a set of scriptures.
+
+    Args:
+        curriculum_string: The title of the curriculum.
+        scripture_text: The text of the scripture to extract insights from.
+        strongs_entries: The Strong's Hebrew dictionary entries.
 
     Returns:
         The generated scripture insights.
