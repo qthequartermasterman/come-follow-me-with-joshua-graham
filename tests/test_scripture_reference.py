@@ -32,6 +32,7 @@ def test_scripture_reference_with_none_equals_same_start_and_end(verse_ref: scri
     assert scripture_ref == scripture_ref_none_end
 
 
+@hypothesis.settings(max_examples=1000)
 @hypothesis.given(scripture_ref=...)
 def test_scripture_reference_round_trip(scripture_ref: scripture_reference.ScriptureReference) -> None:
     """Test that a ScriptureReference object can be converted to a string and back."""
