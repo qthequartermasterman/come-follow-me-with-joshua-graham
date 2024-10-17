@@ -56,6 +56,7 @@ version = {attr = "generate_show.__version__"}
 generate_show = [
     "**/*.pyi",
     "py.typed",
+    "**/*.pls",
 ]
 
 [tool.setuptools.packages.find]
