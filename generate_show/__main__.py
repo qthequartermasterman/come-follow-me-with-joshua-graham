@@ -16,6 +16,7 @@ import generate_show.youtube
 from generate_show import files, prompt
 from generate_show.curriculum import ComeFollowMeCurriculum, fetch_curriculum, get_all_curriculum_for_year
 from generate_show.prompt import (
+    ScriptureInsights,
     generate_episode,
     generate_episode_outline,
     generate_video_description,
@@ -98,17 +99,29 @@ def main(
         shutil.copytree(master_dir, lesson_dir)
 
     LOGGER.info("Generating scripture insights")
-    scripture_insights = prompt.ScriptureInsightsFactory().generate_scripture_insights(cfm_curriculum)
+    if (insights_file := lesson_dir / files.SCRIPTURE_INSIGHTS_FILENAME).exists():
+        scripture_insights = ScriptureInsights.parse_raw(insights_file.read_text())
+    else:
+        scripture_insights = prompt.ScriptureInsightsFactory().generate_scripture_insights(cfm_curriculum)
+        insights_file.write_text(scripture_insights.model_dump_json(indent=4))
     LOGGER.info(scripture_insights.model_dump_json(indent=4))
 
     LOGGER.info("Generating episode outline")
-    episode_outline = generate_episode_outline(
-        cfm_curriculum.scripture_reference, scripture_insights=scripture_insights
-    )
+    if (outline_file := lesson_dir / files.EPISODE_OUTLINE_FILENAME).exists():
+        episode_outline = prompt.EpisodeOutline.parse_raw(outline_file.read_text())
+    else:
+        episode_outline = generate_episode_outline(
+            cfm_curriculum.scripture_reference, scripture_insights=scripture_insights
+        )
+        outline_file.write_text(episode_outline.model_dump_json(indent=4))
     LOGGER.info(episode_outline.model_dump_json(indent=4))
 
     LOGGER.info("Generating episode")
-    episode = generate_episode(cfm_curriculum.scripture_reference, episode_outline=episode_outline)
+    if (script_file := lesson_dir / files.EPISODE_SCRIPT_FILENAME).exists():
+        episode = prompt.Episode.parse_raw(script_file.read_text())
+    else:
+        episode = generate_episode(cfm_curriculum.scripture_reference, episode_outline=episode_outline)
+        script_file.write_text(episode.model_dump_json(indent=4))
     LOGGER.info(episode.model_dump_json(indent=4))
 
     input("\n\n⚠️⚠️Please review the episode and press enter to continue.⚠️⚠️")
@@ -123,7 +136,11 @@ def main(
         return
 
     LOGGER.info("Generating video description")
-    video_description = generate_video_description(episode=episode)
+    if (description_file := lesson_dir / files.VIDEO_DESCRIPTION_FILENAME).exists():
+        video_description = description_file.read_text()
+    else:
+        video_description = generate_video_description(episode=episode)
+        description_file.write_text(video_description)
 
     if (timestamps := (lesson_dir / files.TIMESTAMPS_FILENAME)).exists():
         video_description += f"\n\nTimestamps:\n{timestamps.read_text()}"
