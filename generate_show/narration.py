@@ -5,7 +5,15 @@ import pathlib
 import re
 import warnings
 
+import elevenlabs
 from elevenlabs import ElevenLabs, VoiceSettings
+
+VOICE_ID = "nBwyHk4MbE8FJ1GEsatX"  # Custom Joshua Graham voice
+VOICE_MODEL = "eleven_turbo_v2"  # This model is cheap and supports phoneme tags
+
+PRONUNCIATION_DICTIONARY_NAME = "scripture_proper_nouns"
+PRONUNCIATION_FILE = pathlib.Path(__file__).parent / "scripture_proper_nouns.pls"
+
 
 NAMES = {
     "1 Nephi ": "first Nephi ",
@@ -41,6 +49,9 @@ VOICE_SETTINGS = VoiceSettings(
     style=0.2,
 )
 ELEVENLABS_CLIENT = ElevenLabs()
+PRONUNCIATION_DICTIONARY = ELEVENLABS_CLIENT.pronunciation_dictionary.add_from_file(
+    name=PRONUNCIATION_DICTIONARY_NAME, file=PRONUNCIATION_FILE.read_text(), workspace_access="admin"
+)
 
 
 def generate_audio_file_from_text(text: str, path: pathlib.Path) -> None:
@@ -64,12 +75,18 @@ def generate_audio_file_from_text(text: str, path: pathlib.Path) -> None:
         return
 
     audio_response = ELEVENLABS_CLIENT.text_to_speech.convert(
-        voice_id="nBwyHk4MbE8FJ1GEsatX",  # Custom Joshua Graham voice
-        model_id="eleven_turbo_v2",  # This model is cheap and supports phoneme tags
+        voice_id=VOICE_ID,
+        model_id=VOICE_MODEL,
         optimize_streaming_latency="0",
         output_format="mp3_22050_32",
         text=text,
         voice_settings=VOICE_SETTINGS,
+        pronunciation_dictionary_locators=[
+            elevenlabs.PronunciationDictionaryVersionLocator(
+                pronunciation_dictionary_id=PRONUNCIATION_DICTIONARY.id,
+                version_id=PRONUNCIATION_DICTIONARY.version_id,
+            )
+        ],
     )
 
     # Writing the audio to a file
