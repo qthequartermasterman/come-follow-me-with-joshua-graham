@@ -47,7 +47,7 @@ class CacheModel(pydantic.BaseModel):
                 **kwargs: The keyword arguments to the function.
 
             """
-            args_hash = hashlib.sha256((str(args) + str(kwargs)).encode("utf-8")).hexdigest()[:16]
+            args_hash = hashlib.sha256((cls.__name__ + str(args) + str(kwargs)).encode("utf-8")).hexdigest()[:16]
             path: pathlib.Path = pathlib.Path("../.cache") / f"{cls.__name__}-{args_hash}.json"
             if path.exists():
                 logging.info("Cache hit for %s. Using cached %s", path, cls.__name__)
@@ -58,6 +58,43 @@ class CacheModel(pydantic.BaseModel):
             return model
 
         return wrapper
+
+
+class ScriptureInsight(pydantic.BaseModel):
+    """An insight into a scripture passage."""
+
+    reference: str = pydantic.Field(
+        description=(
+            "The reference to the scripture that the insight is based on. This should be a valid scripture reference"
+            " in the format 'Book Chapter:Verse', or if it's a range of verses, 'Book Chapter:Verse-Chapter:Verse'."
+        )
+    )
+    insight: str = pydantic.Field(
+        description=(
+            "The insight into the scripture passage. This should be doctrinally sound according to the official"
+            " positions of the Church of Jesus Christ of Latter-day Saints. The insight should be spiritually uplifting"
+            " and testify of Jesus Christ."
+        )
+    )
+
+
+class ScriptureInsights(CacheModel):
+    """A collection of insights into scripture passages."""
+
+    insights: list[ScriptureInsight] = pydantic.Field(
+        description=(
+            "A list of insights into scripture passages. Each insight should be based on a specific scripture"
+            " reference and should be doctrinally sound according to the official positions of the Church of Jesus"
+            " Christ of Latter-day Saints. Each insight should be spiritually uplifting and testify of Jesus Christ."
+        )
+    )
+
+    @classmethod
+    def compile_insights(cls, *insights: "ScriptureInsights") -> "ScriptureInsights":
+        """Compile the insights into a single text string."""
+        insights_combined = [insight for insight_set in insights for insight in insight_set.insights]
+        insights_combined = list(sorted(insights_combined, key=lambda insight: insight.reference))
+        return cls(insights=insights_combined)
 
 
 class Segment(pydantic.BaseModel):

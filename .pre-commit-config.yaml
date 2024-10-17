@@ -31,3 +31,10 @@ repos:
       language: system
       types_or: [python, pyi, jupyter]
       args: [format]
+    - id: Pytest
+      name: Pytest
+      entry: pytest
+      language: system
+      types_or: [python, pyi, jupyter]
+      args: [tests]
+      pass_filenames: false

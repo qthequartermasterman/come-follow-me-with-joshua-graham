@@ -11,3 +11,8 @@ INTRO_WITH_FADE_FILENAME = "introduction_with_fades.mp3"
 OUTRO_WITH_FADE_FILENAME = "outro_with_fades.mp3"
 TIMESTAMPS_FILENAME = "timestamps.txt"
 MASTER_DIRECTORY_NAME = "master"
+
+EPISODE_OUTLINE_FILENAME = "episode_outline.json"
+EPISODE_SCRIPT_FILENAME = "episode_script.json"
+SCRIPTURE_INSIGHTS_FILENAME = "scripture_insights.json"
+VIDEO_DESCRIPTION_FILENAME = "video_description.txt"
