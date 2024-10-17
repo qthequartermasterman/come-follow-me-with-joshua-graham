@@ -7,7 +7,7 @@ import magentic
 import pydantic
 import tqdm
 
-from generate_show import curriculum, scripture_reference, strongs
+from generate_show import citation_index, curriculum, scripture_reference, strongs
 from generate_show.models import Episode, EpisodeOutline, ScriptureInsights
 
 EPISODE_OUTLINE_GENERATION_SYSTEM_PROMPT = """\
@@ -183,6 +183,29 @@ The official Come, Follow Me curriculum is as follows:
 {curriculum_text}
 """
 
+CITATION_INDEX_EXTRACTION_SYSTEM_PROMPT = """\
+Before writing the outline, you must extract insights from the scriptures. You are Joshua Graham. Please consider the \
+verses of scripture below and provide insights into the text. You should include the scripture reference for each \
+insight with the exact chapter and verse numbers provided. Make sure to include any relevant details in the \
+description of the insight. Focus on connections to General Conference talks or other Church publications. Many of \
+which are included below. If you can provide a unique perspective that others could not, then please do so. Do not be \
+generic or just copy the talks, though.
+
+Your insights should be spiritually uplifting, faith promoting, and \
+doctrinally sound according to the official positions of the Church of Jesus Christ of Latter-day Saints. Make sure to \
+testify of Jesus Christ and invite all to come unto Him through sincere repentance.
+
+Feel free to include as many insights as you can. The more insights you provide, the more engaging and uplifting the \
+episode will be. We will later expand and prune the insights as needed to fit the episode outline. Please extract at \
+least seven (7) insights from the scriptures.
+
+The scripture text is as follows:
+{scripture_text}
+
+The talks are as follows:
+{conference_talks}
+"""
+
 
 class ScriptureInsightsFactory(pydantic.BaseModel):
     """A factory for creating insights into scripture passages.
@@ -194,6 +217,7 @@ class ScriptureInsightsFactory(pydantic.BaseModel):
     scripture_text_direct: bool = True
     come_follow_me_curriculum: bool = True
     language_insights: bool = True
+    citation_index: bool = True
 
     def generate_scripture_insights(self, cfm_curriculum: curriculum.ComeFollowMeCurriculum) -> ScriptureInsights:
         """Generate unique scriptural insights from a Come, Follow Me curriculum.
@@ -233,6 +257,23 @@ class ScriptureInsightsFactory(pydantic.BaseModel):
                     curriculum_text=cfm_curriculum.text,
                 )
                 combined_scripture_insights.append(curriculum_insights)
+
+            if self.citation_index:
+                relevant_talks = citation_index.get_talks(chapter)
+                talks_string = "\n".join(
+                    [
+                        f"Talk header:\n {talk.header}\nRelevant portion: \n {talk.relevant_paragraph}"
+                        if talk.relevant_paragraph
+                        else f"Talk:\n {talk.text}"
+                        for talk in relevant_talks
+                    ]
+                )
+                talk_insights = self.extract_talks_insights(
+                    curriculum_string=cfm_curriculum.scripture_reference,
+                    scripture_text=scripture_text,
+                    conference_talks=talks_string,
+                )
+                combined_scripture_insights.append(talk_insights)
 
         # Create a new Scripture Insights object that's the composite of each chapter.
         return ScriptureInsights.compile_insights(*combined_scripture_insights)
@@ -301,6 +342,27 @@ class ScriptureInsightsFactory(pydantic.BaseModel):
             curriculum_string: The title of the curriculum.
             scripture_text: The text of the scripture to extract insights from.
             curriculum_text: The text of the curriculum to extract insights from.
+
+        Returns:
+            The generated scripture insights.
+
+        """
+        ...
+
+    @staticmethod
+    @ScriptureInsights.cache_pydantic_model
+    @magentic.chatprompt(
+        magentic.SystemMessage(EPISODE_OUTLINE_GENERATION_SYSTEM_PROMPT),
+        magentic.UserMessage(f"This is Joshua Graham's background\n\n{JOSHUA_GRAHAM_BACKGROUND_TEXT}"),
+        magentic.UserMessage(CITATION_INDEX_EXTRACTION_SYSTEM_PROMPT),
+    )
+    def extract_talks_insights(curriculum_string: str, scripture_text: str, conference_talks: str) -> ScriptureInsights:
+        """Generate General Conference talk insights from a set of scriptures.
+
+        Args:
+            curriculum_string: The title of the curriculum.
+            scripture_text: The text of the scripture to extract insights from.
+            conference_talks: The text of the curriculum to extract insights from.
 
         Returns:
             The generated scripture insights.

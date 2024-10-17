@@ -48,7 +48,7 @@ def curriculum_menu() -> ComeFollowMeCurriculum:
 
 def main(
     week_number: int | None = None,
-    output_dir: str | pathlib.Path = pathlib.Path("../episodes"),
+    output_dir: str | pathlib.Path = pathlib.Path("./episodes"),
     upload_to_youtube: bool = True,
 ) -> None:
     """Generate an episode of "Come, Follow Me with Joshua Graham".
@@ -91,7 +91,8 @@ def main(
     if not lesson_dir.exists():
         if not master_dir.exists():
             raise FileNotFoundError(
-                f"Master directory not found at {master_dir}. Please create a master directory to use as a template."
+                f"Master directory not found at {master_dir.absolute()}. "
+                "Please create a master directory to use as a template."
             )
         LOGGER.info("Copying master directory to output directory")
         shutil.copytree(master_dir, lesson_dir)
