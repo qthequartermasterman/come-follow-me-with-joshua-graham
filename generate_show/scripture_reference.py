@@ -462,7 +462,7 @@ def get_scriptures() -> dict[Book, dict[int, dict[Verse, str]]]:
     """
     text = download_text()
     lines = text.splitlines()
-    parsed = dict([tuple(t.split("     ", maxsplit=1)) for t in lines])
+    parsed: dict[str, str] = dict([tuple(t.split("     ", maxsplit=1)) for t in lines])  # type: ignore
     # The REGEX doesn't currently support JS-Mathew or JS-History.
     parsed = {k.strip(): v.strip() for k, v in parsed.items() if "Joseph Smith" not in k}
     scriptures: dict[Book, dict[int, dict[Verse, str]]] = collections.defaultdict(lambda: collections.defaultdict(dict))

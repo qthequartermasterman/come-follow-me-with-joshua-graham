@@ -44,6 +44,7 @@ async def curriculum_menu() -> ComeFollowMeCurriculum:
         menu_options, cursor_index=lesson_index, title="Select a Come, Follow Me lesson..."
     )
     chosen_week_index = menu.show()
+    assert isinstance(chosen_week_index, int)
     return curricula[chosen_week_index + 1]  # Off by one because the curriculum id is 1-indexed
 
 
