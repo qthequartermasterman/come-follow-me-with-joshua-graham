@@ -1,13 +1,15 @@
 """Strong's Hebrew dictionary utilities."""
 
-import functools
 import re
 
 import bm25s
 import httpx
 import pydantic
 
+from generate_show import models
+
 REMOVE_PUNCTUATION_AND_NUMBERS = re.compile(r"[^a-zA-Z\s]")
+ASYNC_CLIENT = httpx.AsyncClient()
 
 
 class Word(pydantic.BaseModel, frozen=True):
@@ -69,7 +71,7 @@ class HebrewSummary(pydantic.BaseModel, frozen=True):
         return re.sub(r"<[^>]+>", "", value)
 
 
-class Strong(pydantic.BaseModel, frozen=True):
+class Strong(models.CacheModel):
     """The Strong's Hebrew dictionary."""
 
     dictionary: dict[str, Hebrew]
@@ -111,15 +113,15 @@ class Strong(pydantic.BaseModel, frozen=True):
         return return_dictionary
 
 
-@functools.lru_cache(maxsize=1)
-def get_strongs() -> Strong:
+@Strong.async_cache_pydantic_model
+async def get_strongs() -> Strong:
     """Get the Strong's Hebrew dictionary.
 
     Returns:
         The Strong's Hebrew dictionary.
 
     """
-    response = httpx.get(
+    response = await ASYNC_CLIENT.get(
         "https://raw.githubusercontent.com/openscriptures/HebrewLexicon/refs/heads/master/sinri/json/StrongHebrewDictionary.json"
     )
     json = response.json()

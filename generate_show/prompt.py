@@ -314,7 +314,7 @@ class ScriptureInsightsFactory(pydantic.BaseModel):
             The generated language insights.
 
         """
-        strongs_dictionary = strongs.get_strongs()
+        strongs_dictionary = await strongs.get_strongs()
         strongs_references = strongs_dictionary.find_relevant_strongs_entries(scripture_text)
         return await self.extract_language_insights(
             curriculum_string=cfm_curriculum.scripture_reference,
