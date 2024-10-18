@@ -26,14 +26,14 @@ LOGGER = logging.getLogger()
 LOGGER.setLevel(logging.INFO)
 
 
-def curriculum_menu() -> ComeFollowMeCurriculum:
+async def curriculum_menu() -> ComeFollowMeCurriculum:
     """Select a Come, Follow Me curriculum to generate an episode for with an interactive menu.
 
     Returns:
         The selected curriculum.
 
     """
-    curricula = get_all_curriculum_for_year()
+    curricula = await get_all_curriculum_for_year()
     menu_options = [f"{curriculum.title} ({curriculum.scripture_reference})" for curriculum in curricula.values()]
     now = datetime.datetime.now()
     lesson_index = next(
@@ -47,7 +47,7 @@ def curriculum_menu() -> ComeFollowMeCurriculum:
     return curricula[chosen_week_index + 1]  # Off by one because the curriculum id is 1-indexed
 
 
-def main(
+async def main(
     week_number: int | None = None,
     output_dir: str | pathlib.Path = pathlib.Path("./episodes"),
     upload_to_youtube: bool = True,
@@ -76,9 +76,9 @@ def main(
     output_dir = pathlib.Path(output_dir)
 
     if week_number is not None:
-        cfm_curriculum = fetch_curriculum(week_number)
+        cfm_curriculum = await fetch_curriculum(week_number)
     else:
-        cfm_curriculum = curriculum_menu()
+        cfm_curriculum = await curriculum_menu()
 
     input(
         'You are about to create an episode of "Come, Follow Me with Joshua Graham" for the lesson\n'
@@ -102,7 +102,7 @@ def main(
     if (insights_file := lesson_dir / files.SCRIPTURE_INSIGHTS_FILENAME).exists():
         scripture_insights = ScriptureInsights.parse_raw(insights_file.read_text())
     else:
-        scripture_insights = prompt.ScriptureInsightsFactory().generate_scripture_insights(cfm_curriculum)
+        scripture_insights = await prompt.ScriptureInsightsFactory().generate_scripture_insights(cfm_curriculum)
         insights_file.write_text(scripture_insights.model_dump_json(indent=4))
     LOGGER.info(scripture_insights.model_dump_json(indent=4))
 
@@ -110,7 +110,7 @@ def main(
     if (outline_file := lesson_dir / files.EPISODE_OUTLINE_FILENAME).exists():
         episode_outline = prompt.EpisodeOutline.parse_raw(outline_file.read_text())
     else:
-        episode_outline = generate_episode_outline(
+        episode_outline = await generate_episode_outline(
             cfm_curriculum.scripture_reference, scripture_insights=scripture_insights
         )
         outline_file.write_text(episode_outline.model_dump_json(indent=4))
@@ -120,7 +120,7 @@ def main(
     if (script_file := lesson_dir / files.EPISODE_SCRIPT_FILENAME).exists():
         episode = prompt.Episode.parse_raw(script_file.read_text())
     else:
-        episode = generate_episode(cfm_curriculum.scripture_reference, episode_outline=episode_outline)
+        episode = await generate_episode(cfm_curriculum.scripture_reference, episode_outline=episode_outline)
         script_file.write_text(episode.model_dump_json(indent=4))
     LOGGER.info(episode.model_dump_json(indent=4))
 
@@ -139,7 +139,7 @@ def main(
     if (description_file := lesson_dir / files.VIDEO_DESCRIPTION_FILENAME).exists():
         video_description = description_file.read_text()
     else:
-        video_description = generate_video_description(episode=episode)
+        video_description = await generate_video_description(episode=episode)
         description_file.write_text(video_description)
 
     if (timestamps := (lesson_dir / files.TIMESTAMPS_FILENAME)).exists():
