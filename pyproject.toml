@@ -42,7 +42,7 @@ dynamic = ["version"]
 
 
 [project.optional-dependencies]
-dev = ["pre-commit==4.0.1", "pyright==1.1.291", "ruff==0.6.9",]
+dev = ["pre-commit==4.0.1", "pyright==1.1.385", "ruff==0.6.9",]
 test = ["pytest==8.3.3", "hypothesis==6.115.0"]
 
 [project.urls]
