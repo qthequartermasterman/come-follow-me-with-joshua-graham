@@ -202,7 +202,7 @@ class ScriptureReference(pydantic.BaseModel, frozen=True):
             return ScriptureReference(start_verse=self.start_verse, end_verse=None)
         return self
 
-    def __eq__(self, other: "ScriptureReference" | Any) -> bool:
+    def __eq__(self, other: "ScriptureReference | Any") -> bool:
         """Compare two scripture references for equality.
 
         Args:
