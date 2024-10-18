@@ -1,5 +1,6 @@
 """Prompting utilities for generating the show."""
 
+import asyncio
 import logging
 
 import httpx
@@ -219,7 +220,7 @@ class ScriptureInsightsFactory(pydantic.BaseModel):
     language_insights: bool = True
     citation_index: bool = True
 
-    def generate_scripture_insights(self, cfm_curriculum: curriculum.ComeFollowMeCurriculum) -> ScriptureInsights:
+    async def generate_scripture_insights(self, cfm_curriculum: curriculum.ComeFollowMeCurriculum) -> ScriptureInsights:
         """Generate unique scriptural insights from a Come, Follow Me curriculum.
 
         Args:
@@ -229,57 +230,100 @@ class ScriptureInsightsFactory(pydantic.BaseModel):
             The generated scripture insights.
 
         """
-        strongs_dictionary = strongs.get_strongs()
         scripture_ref = scripture_reference.ScriptureReference.from_string(cfm_curriculum.scripture_reference)
         chapters = scripture_ref.split_chapters()
         combined_scripture_insights = []
         for chapter in tqdm.tqdm(chapters, desc="Generating scripture insights by chapter"):
             scripture_text = chapter.get_scripture_text()
+            insight_tasks = []
             if self.scripture_text_direct:
-                scripture_insights = self.extract_scripture_insights(
-                    curriculum_string=cfm_curriculum.scripture_reference,
-                    scripture_text=scripture_text,
+                insight_tasks.append(
+                    asyncio.create_task(
+                        self.extract_scripture_insights(
+                            curriculum_string=cfm_curriculum.scripture_reference,
+                            scripture_text=scripture_text,
+                        )
+                    )
                 )
-                combined_scripture_insights.append(scripture_insights)
             if self.language_insights:
-                strongs_references = strongs_dictionary.find_relevant_strongs_entries(scripture_text)
-                language_insights = self.extract_language_insights(
-                    curriculum_string=cfm_curriculum.scripture_reference,
-                    scripture_text=scripture_text,
-                    strongs_entries=strongs_references,
+                insight_tasks.append(
+                    asyncio.create_task(self.get_language_insights(scripture_text, cfm_curriculum=cfm_curriculum))
                 )
-                combined_scripture_insights.append(language_insights)
-
             if self.come_follow_me_curriculum:
-                curriculum_insights = self.extract_curriculum_insights(
-                    curriculum_string=cfm_curriculum.scripture_reference,
-                    scripture_text=scripture_text,
-                    curriculum_text=cfm_curriculum.text,
+                insight_tasks.append(
+                    asyncio.create_task(
+                        self.extract_curriculum_insights(
+                            curriculum_string=cfm_curriculum.scripture_reference,
+                            scripture_text=scripture_text,
+                            curriculum_text=cfm_curriculum.text,
+                        )
+                    )
                 )
-                combined_scripture_insights.append(curriculum_insights)
-
             if self.citation_index:
-                relevant_talks = citation_index.get_talks(chapter)
-                talks_string = "\n".join(
-                    [
-                        f"Talk header:\n {talk.header}\nRelevant portion: \n {talk.relevant_paragraph}"
-                        if talk.relevant_paragraph
-                        else f"Talk:\n {talk.text}"
-                        for talk in relevant_talks
-                    ]
+                insight_tasks.append(
+                    asyncio.create_task(
+                        self.get_citation_index_insights(
+                            chapter, scripture_text, curriculum_string=cfm_curriculum.scripture_reference
+                        )
+                    )
                 )
-                talk_insights = self.extract_talks_insights(
-                    curriculum_string=cfm_curriculum.scripture_reference,
-                    scripture_text=scripture_text,
-                    conference_talks=talks_string,
-                )
-                combined_scripture_insights.append(talk_insights)
+            combined_scripture_insights.extend(await asyncio.gather(*insight_tasks))
 
         # Create a new Scripture Insights object that's the composite of each chapter.
         return ScriptureInsights.compile_insights(*combined_scripture_insights)
 
+    async def get_citation_index_insights(
+        self, chapter_reference: scripture_reference.ScriptureReference, scripture_text: str, curriculum_string: str
+    ) -> ScriptureInsights:
+        """Get citation index insights from a set of scriptures.
+
+        Args:
+            chapter_reference: The reference to the chapter.
+            scripture_text: The text of the scripture to extract insights from.
+            curriculum_string: The title of the curriculum.
+
+        Returns:
+            The generated citation index insights.
+
+        """
+        relevant_talks = await citation_index.get_talks(chapter_reference)
+        talks_string = "\n".join(
+            [
+                f"Talk header:\n {talk.header}\nRelevant portion: \n {talk.relevant_paragraph}"
+                if talk.relevant_paragraph
+                else f"Talk:\n {talk.text}"
+                for talk in relevant_talks
+            ]
+        )
+        return await self.extract_talks_insights(
+            curriculum_string=curriculum_string,
+            scripture_text=scripture_text,
+            conference_talks=talks_string,
+        )
+
+    async def get_language_insights(
+        self, scripture_text: str, cfm_curriculum: curriculum.ComeFollowMeCurriculum
+    ) -> ScriptureInsights:
+        """Get language insights from a set of scriptures.
+
+        Args:
+            scripture_text: The text of the scripture to extract insights from.
+            cfm_curriculum: The Come, Follow Me curriculum to generate insights from.
+
+        Returns:
+            The generated language insights.
+
+        """
+        strongs_dictionary = await strongs.get_strongs()
+        strongs_references = strongs_dictionary.find_relevant_strongs_entries(scripture_text)
+        return await self.extract_language_insights(
+            curriculum_string=cfm_curriculum.scripture_reference,
+            scripture_text=scripture_text,
+            strongs_entries=strongs_references,
+        )
+
     @staticmethod
-    @ScriptureInsights.cache_pydantic_model
+    @ScriptureInsights.async_cache_pydantic_model
     @magentic.chatprompt(
         magentic.SystemMessage(EPISODE_OUTLINE_GENERATION_SYSTEM_PROMPT),
         magentic.UserMessage(f"This is Joshua Graham's background\n\n{JOSHUA_GRAHAM_BACKGROUND_TEXT}"),
@@ -290,7 +334,7 @@ class ScriptureInsightsFactory(pydantic.BaseModel):
         ),
         magentic.UserMessage(LANGUAGE_INSIGHT_EXTRACTION_SYSTEM_PROMPT),
     )
-    def extract_language_insights(
+    async def extract_language_insights(
         curriculum_string: str, scripture_text: str, strongs_entries: dict[str, strongs.HebrewSummary]
     ) -> ScriptureInsights:
         """Generate language insights from a set of scriptures.
@@ -307,13 +351,13 @@ class ScriptureInsightsFactory(pydantic.BaseModel):
         ...
 
     @staticmethod
-    @ScriptureInsights.cache_pydantic_model
+    @ScriptureInsights.async_cache_pydantic_model
     @magentic.chatprompt(
         magentic.SystemMessage(EPISODE_OUTLINE_GENERATION_SYSTEM_PROMPT),
         magentic.UserMessage(f"This is Joshua Graham's background\n\n{JOSHUA_GRAHAM_BACKGROUND_TEXT}"),
         magentic.UserMessage(SCRIPTURE_INSIGHT_EXTRACTION_SYSTEM_PROMPT),
     )
-    def extract_scripture_insights(curriculum_string: str, scripture_text: str) -> ScriptureInsights:
+    async def extract_scripture_insights(curriculum_string: str, scripture_text: str) -> ScriptureInsights:
         """Generate insights from a set of scriptures.
 
         Args:
@@ -327,13 +371,13 @@ class ScriptureInsightsFactory(pydantic.BaseModel):
         ...
 
     @staticmethod
-    @ScriptureInsights.cache_pydantic_model
+    @ScriptureInsights.async_cache_pydantic_model
     @magentic.chatprompt(
         magentic.SystemMessage(EPISODE_OUTLINE_GENERATION_SYSTEM_PROMPT),
         magentic.UserMessage(f"This is Joshua Graham's background\n\n{JOSHUA_GRAHAM_BACKGROUND_TEXT}"),
         magentic.UserMessage(CURRICULUM_INSIGHT_EXTRACTION_SYSTEM_PROMPT),
     )
-    def extract_curriculum_insights(
+    async def extract_curriculum_insights(
         curriculum_string: str, scripture_text: str, curriculum_text: str
     ) -> ScriptureInsights:
         """Generate Come, Follow Me curriculum insights from a set of scriptures.
@@ -350,13 +394,15 @@ class ScriptureInsightsFactory(pydantic.BaseModel):
         ...
 
     @staticmethod
-    @ScriptureInsights.cache_pydantic_model
+    @ScriptureInsights.async_cache_pydantic_model
     @magentic.chatprompt(
         magentic.SystemMessage(EPISODE_OUTLINE_GENERATION_SYSTEM_PROMPT),
         magentic.UserMessage(f"This is Joshua Graham's background\n\n{JOSHUA_GRAHAM_BACKGROUND_TEXT}"),
         magentic.UserMessage(CITATION_INDEX_EXTRACTION_SYSTEM_PROMPT),
     )
-    def extract_talks_insights(curriculum_string: str, scripture_text: str, conference_talks: str) -> ScriptureInsights:
+    async def extract_talks_insights(
+        curriculum_string: str, scripture_text: str, conference_talks: str
+    ) -> ScriptureInsights:
         """Generate General Conference talk insights from a set of scriptures.
 
         Args:
@@ -371,13 +417,13 @@ class ScriptureInsightsFactory(pydantic.BaseModel):
         ...
 
 
-@EpisodeOutline.cache_pydantic_model
+@EpisodeOutline.async_cache_pydantic_model
 @magentic.chatprompt(
     magentic.SystemMessage(EPISODE_OUTLINE_GENERATION_SYSTEM_PROMPT),
     magentic.UserMessage(f"This is Joshua Graham's background\n\n{JOSHUA_GRAHAM_BACKGROUND_TEXT}"),
     magentic.UserMessage("Here are the scripture insights you have previously generated:\n\n{scripture_insights}"),
 )
-def generate_episode_outline(curriculum_string: str, scripture_insights: ScriptureInsights) -> EpisodeOutline:
+async def generate_episode_outline(curriculum_string: str, scripture_insights: ScriptureInsights) -> EpisodeOutline:
     """Generate an episode outline from a curriculum.
 
     Args:
@@ -391,13 +437,13 @@ def generate_episode_outline(curriculum_string: str, scripture_insights: Scriptu
     ...
 
 
-@Episode.cache_pydantic_model
+@Episode.async_cache_pydantic_model
 @magentic.chatprompt(
     magentic.SystemMessage(EPISODE_OUTLINE_GENERATION_SYSTEM_PROMPT),
     magentic.UserMessage(f"This is Joshua Graham's background\n\n{JOSHUA_GRAHAM_BACKGROUND_TEXT}"),
     magentic.UserMessage(EPISODE_FLESH_OUT_GENERATION_PROMPT),
 )
-def generate_episode(curriculum_string: str, episode_outline: EpisodeOutline) -> Episode:
+async def generate_episode(curriculum_string: str, episode_outline: EpisodeOutline) -> Episode:
     """Generate a full podcast episode from an episode outline.
 
     Args:
@@ -415,7 +461,7 @@ def generate_episode(curriculum_string: str, episode_outline: EpisodeOutline) ->
     magentic.SystemMessage(EPISODE_SUMMARY_GENERATION_PROMPT),
     magentic.UserMessage("Please write the YouTube video description for the episode {episode.title}"),
 )
-def generate_video_description(episode: Episode) -> str:
+async def generate_video_description(episode: Episode) -> str:
     """Generate a video description for a podcast episode.
 
     Args:

@@ -132,7 +132,7 @@ class Verse(pydantic.BaseModel, frozen=True):
         """Remove leading and trailing whitespace from the book name."""
         return value.strip()
 
-    def __lt__(self, other: "Verse" | Any) -> bool:
+    def __lt__(self, other: "Verse | Any") -> bool:
         """Compare two verses based on their book, chapter, and verse.
 
         Args:
@@ -202,7 +202,7 @@ class ScriptureReference(pydantic.BaseModel, frozen=True):
             return ScriptureReference(start_verse=self.start_verse, end_verse=None)
         return self
 
-    def __eq__(self, other: "ScriptureReference" | Any) -> bool:
+    def __eq__(self, other: "ScriptureReference | Any") -> bool:
         """Compare two scripture references for equality.
 
         Args:

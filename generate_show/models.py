@@ -5,7 +5,7 @@ import hashlib
 import logging
 import multiprocessing
 import pathlib
-from typing import Callable, Type
+from typing import Callable, Coroutine, Type
 
 import pydantic
 import tqdm
@@ -53,6 +53,44 @@ class CacheModel(pydantic.BaseModel):
                 logging.info("Cache hit for %s. Using cached %s", path, cls.__name__)
                 return cls.model_validate_json(path.read_text())
             model = func(*args, **kwargs)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(model.model_dump_json(indent=4))
+            return model
+
+        return wrapper
+
+    @classmethod
+    def async_cache_pydantic_model(
+        cls: Type[Model], func: Callable[P, Coroutine[None, None, Model]]
+    ) -> Callable[P, Coroutine[None, None, Model]]:
+        """Cache the output of a function that returns a pydantic model.
+
+        The cached model will be saved to a file in the .cache directory with the name of the class and a hash of the
+        arguments.
+
+        Args:
+            func: The function to cache the output of.
+
+        Returns:
+            The wrapped function that caches the output.
+
+        """
+
+        @functools.wraps(func)
+        async def wrapper(*args: P.args, **kwargs: P.kwargs) -> Model:
+            """Wrap the function to cache the output.
+
+            Args:
+                *args: The arguments to the function.
+                **kwargs: The keyword arguments to the function.
+
+            """
+            args_hash = hashlib.sha256((cls.__name__ + str(args) + str(kwargs)).encode("utf-8")).hexdigest()[:16]
+            path: pathlib.Path = pathlib.Path("../.cache") / f"{cls.__name__}-{args_hash}.json"
+            if path.exists():
+                logging.info("Cache hit for %s. Using cached %s", path, cls.__name__)
+                return cls.model_validate_json(path.read_text())
+            model = await func(*args, **kwargs)
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(model.model_dump_json(indent=4))
             return model

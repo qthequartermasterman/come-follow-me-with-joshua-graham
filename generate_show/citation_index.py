@@ -1,5 +1,6 @@
 """Functions to get talks from the BYU Scripture Citation Index that reference a scripture."""
 
+import asyncio
 import re
 from typing import cast
 
@@ -15,6 +16,8 @@ GET_TALK_URL = "https://scriptures.byu.edu/content/talks_ajax/{talk_number}/"
 
 GET_VERSE_REFERENCES_REGEX = re.compile(r"getSci\('\d+', '\d+', '([\d\-,]+)', '\d*'\)")
 GET_TALK_REFERENCE_REGEX = re.compile(r"getTalk\('(\d+)', '(\d+)'")
+
+ASYNC_CLIENT = httpx.AsyncClient()
 
 
 CITATION_INDEX_BOOK_NUMBERS = {
@@ -123,7 +126,7 @@ class Talk(models.CacheModel):
         return self.text.splitlines()[0]
 
 
-def get_verse_references(book_number: int, chapter_number: int) -> list[str]:
+async def get_verse_references(book_number: int, chapter_number: int) -> list[str]:
     """Get verse references for a chapter.
 
     Args:
@@ -135,7 +138,7 @@ def get_verse_references(book_number: int, chapter_number: int) -> list[str]:
 
     """
     url = GET_VERSES_URL.format(book_number=book_number, chapter_number=chapter_number)
-    response = httpx.get(url)
+    response = await ASYNC_CLIENT.get(url)
     soup = bs4.BeautifulSoup(response.text, "html.parser")
 
     # We want to extract the 3rd string inside of `getSci` from all `a` tags that are descended of
@@ -152,8 +155,8 @@ def get_verse_references(book_number: int, chapter_number: int) -> list[str]:
     return verse_references
 
 
-@Talk.cache_pydantic_model
-def get_talk(talk_number: int, paragraph_id: int) -> Talk:
+@Talk.async_cache_pydantic_model
+async def get_talk(talk_number: int, paragraph_id: int) -> Talk:
     """Get a talk.
 
     Args:
@@ -165,7 +168,7 @@ def get_talk(talk_number: int, paragraph_id: int) -> Talk:
 
     """
     talk_url = GET_TALK_URL.format(talk_number=talk_number)
-    talk_html = httpx.get(talk_url).text
+    talk_html = (await ASYNC_CLIENT.get(talk_url)).text
     talk_soup = bs4.BeautifulSoup(talk_html, "html.parser")
     # The full text is the text of `div#bottom-gradient`
     talk_text = talk_soup.text
@@ -185,7 +188,7 @@ def get_talk(talk_number: int, paragraph_id: int) -> Talk:
     return Talk(text=talk_text, relevant_paragraph=relevant_paragraph)
 
 
-def get_talk_reference(book_number: int, chapter_number: int, verse_reference: str) -> list[Talk]:
+async def get_talk_reference(book_number: int, chapter_number: int, verse_reference: str) -> list[Talk]:
     """Get talks that reference a verse reference (in BYU Scripture Citation Index format).
 
     Args:
@@ -202,7 +205,7 @@ def get_talk_reference(book_number: int, chapter_number: int, verse_reference: s
     )
 
     # We want the getTalk function arguments of each `a` tag descended from `ul.referencesblock`
-    response = httpx.get(url)
+    response = await ASYNC_CLIENT.get(url)
     soup = bs4.BeautifulSoup(response.text, "html.parser")
     talks = soup.select("ul.referencesblock a")
     talk_references = []
@@ -212,11 +215,13 @@ def get_talk_reference(book_number: int, chapter_number: int, verse_reference: s
         if match is None:
             continue
         talk_number, paragraph_id = match.groups()
-        talk_references.append(get_talk(int(talk_number), int(paragraph_id)))
-    return talk_references
+        talk_references.append(asyncio.create_task(get_talk(int(talk_number), int(paragraph_id))))
+    return await asyncio.gather(*talk_references)
 
 
-def get_talks(scripture_ref: scripture_reference.ScriptureReference, maximum_number_of_talks: int = 7) -> list[Talk]:
+async def get_talks(
+    scripture_ref: scripture_reference.ScriptureReference, maximum_number_of_talks: int = 7
+) -> list[Talk]:
     """Get talks that reference a scripture reference.
 
     The most relevant talks (determined by BM25s) are included.
@@ -234,18 +239,22 @@ def get_talks(scripture_ref: scripture_reference.ScriptureReference, maximum_num
         or scripture_ref.start_verse.chapter != scripture_ref.end_verse.chapter
     ):
         raise ValueError("Cannot get talks from multiple chapters.")
-    verse_references = get_verse_references(
+    verse_references = await get_verse_references(
         CITATION_INDEX_BOOK_NUMBERS[scripture_ref.start_verse.book], scripture_ref.start_verse.chapter
     )
-    talks: list[Talk] = []
-    for verse_reference in verse_references:
-        talks.extend(
+    tasks = [
+        asyncio.create_task(
             get_talk_reference(
                 CITATION_INDEX_BOOK_NUMBERS[scripture_ref.start_verse.book],
                 scripture_ref.start_verse.chapter,
                 verse_reference,
             )
         )
+        for verse_reference in verse_references
+    ]
+    talks: list[Talk] = []
+    for task in await asyncio.gather(*tasks):
+        talks.extend(task)
 
     corpus = [f"{i}: {talk.relevant_paragraph}" for i, talk in enumerate(talks)]
     retriever = bm25s.BM25(corpus=corpus)
