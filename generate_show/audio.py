@@ -45,25 +45,21 @@ def create_intro_clip_with_fades(output_dir: pathlib.Path) -> None:
 
     introduction_audio: pydub.AudioSegment = pydub.AudioSegment.from_file(introduction_file, "mp3")
     music_audio: pydub.AudioSegment = pydub.AudioSegment.from_file(music_file, "mp3")
+    music_clip: pydub.AudioSegment = music_audio[: INTRO_FIRST_FADE_IN_DURATION_MS + INTRO_FIRST_FADE_OUT_DURATION_MS]  # type: ignore
 
-    first_music_fade = (
-        music_audio[: (INTRO_FIRST_FADE_IN_DURATION_MS + INTRO_FIRST_FADE_OUT_DURATION_MS)]
-        .fade_in(INTRO_FIRST_FADE_IN_DURATION_MS)
-        .fade_out(INTRO_FIRST_FADE_OUT_DURATION_MS)
-    )
+    first_music_fade = music_clip.fade_in(INTRO_FIRST_FADE_IN_DURATION_MS).fade_out(INTRO_FIRST_FADE_OUT_DURATION_MS)
     length_of_silence = len(introduction_audio) - (INTRO_FIRST_FADE_OUT_DURATION_MS - 250)
     first_music_fade_plus_silence = first_music_fade + pydub.AudioSegment.silent(duration=length_of_silence)
     intro_start_position = len(first_music_fade_plus_silence) - len(introduction_audio)
     first_music_with_intro = first_music_fade_plus_silence.overlay(introduction_audio, position=intro_start_position)
+    final_music_clip: pydub.AudioSegment = music_audio[
+        INTRO_FINAL_FADE_IN_START_POINT_MS : INTRO_FINAL_FADE_IN_START_POINT_MS
+        + INTRO_FINAL_FADE_IN_DURATION_MS
+        + INTRO_FINAL_FADE_OUT_DURATION_MS
+    ]  # type: ignore
 
-    final_fade_in_music_clip = (
-        music_audio[
-            INTRO_FINAL_FADE_IN_START_POINT_MS : INTRO_FINAL_FADE_IN_START_POINT_MS
-            + INTRO_FINAL_FADE_IN_DURATION_MS
-            + INTRO_FINAL_FADE_OUT_DURATION_MS
-        ]
-        .fade_in(INTRO_FINAL_FADE_IN_DURATION_MS)
-        .fade_out(INTRO_FINAL_FADE_OUT_DURATION_MS)
+    final_fade_in_music_clip = final_music_clip.fade_in(INTRO_FINAL_FADE_IN_DURATION_MS).fade_out(
+        INTRO_FINAL_FADE_OUT_DURATION_MS
     )
     final_fade_clip = first_music_with_intro.append(
         final_fade_in_music_clip, crossfade=INTRO_FINAL_FADE_OUT_DURATION_MS
