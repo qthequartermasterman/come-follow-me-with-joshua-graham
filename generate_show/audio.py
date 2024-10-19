@@ -43,8 +43,8 @@ def create_intro_clip_with_fades(output_dir: pathlib.Path) -> None:
     if not (music_file := (output_dir / files.MUSIC_FILENAME)).exists():
         raise ValueError("Cannot create fadein clip without music")
 
-    introduction_audio: pydub.AudioSegment = pydub.AudioSegment.from_file(introduction_file, "mp3")
-    music_audio: pydub.AudioSegment = pydub.AudioSegment.from_file(music_file, "mp3")
+    introduction_audio: pydub.AudioSegment = pydub.AudioSegment.from_file(introduction_file, format="mp3")
+    music_audio: pydub.AudioSegment = pydub.AudioSegment.from_file(music_file, format="mp3")
     music_clip: pydub.AudioSegment = music_audio[: INTRO_FIRST_FADE_IN_DURATION_MS + INTRO_FIRST_FADE_OUT_DURATION_MS]
 
     first_music_fade = music_clip.fade_in(INTRO_FIRST_FADE_IN_DURATION_MS).fade_out(INTRO_FIRST_FADE_OUT_DURATION_MS)
@@ -97,14 +97,14 @@ def composite_audio_files(output_dir: pathlib.Path, segment_files: list[tuple[st
 
     intermission_silence = pydub.AudioSegment.silent(duration=INTERMISSION_SILENCE_MS)
 
-    intro_clip = pydub.AudioSegment.from_file(intro_with_fades, "mp3")
-    outro_clip = pydub.AudioSegment.from_file(outro_with_fades, "mp3")
+    intro_clip = pydub.AudioSegment.from_file(intro_with_fades, format="mp3")
+    outro_clip = pydub.AudioSegment.from_file(outro_with_fades, format="mp3")
 
     durations: list[tuple[str, int]] = [("Introduction", 0)]
 
     composite_audio = intro_clip + intermission_silence
     for segment_title, segment_file in segment_files:
-        segment_clip = pydub.AudioSegment.from_file(output_dir / segment_file, "mp3")
+        segment_clip = pydub.AudioSegment.from_file(output_dir / segment_file, format="mp3")
         durations.append((segment_title, len(composite_audio)))
         composite_audio += segment_clip + intermission_silence
     durations.append(("Closing", len(composite_audio)))
@@ -149,10 +149,12 @@ def create_outro_clip_with_fades(output_dir: pathlib.Path) -> None:
         + OUTRO_FADE_OUT_DURATION_MS
     )
 
-    music_audio: pydub.AudioSegment = pydub.AudioSegment.from_file(output_dir / files.MUSIC_FILENAME, "mp3")[
+    music_audio: pydub.AudioSegment = pydub.AudioSegment.from_file(output_dir / files.MUSIC_FILENAME, format="mp3")[
         OUTRO_FADE_IN_START_POINT_MS:music_end_position
     ]
-    outro_speech_audio: pydub.AudioSegment = pydub.AudioSegment.from_file(output_dir / files.CLOSING_FILENAME, "mp3")
+    outro_speech_audio: pydub.AudioSegment = pydub.AudioSegment.from_file(
+        output_dir / files.CLOSING_FILENAME, format="mp3"
+    )
 
     music_audio = music_audio.fade_in(OUTRO_FADE_IN_DURATION_MS).fade_out(OUTRO_FADE_OUT_DURATION_MS)
 
