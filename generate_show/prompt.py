@@ -208,6 +208,27 @@ The talks are as follows:
 """
 
 
+CORRELATION_SYSTEM_PROMPT = """\
+You are a skilled Scriptorian and Historian with a perfect knowledge of Book of Mormon and Old Testament events. You \
+serve on the Correlation Committee of the Church of Jesus Christ of Latter-day saints. You have been tasked with \
+checking the doctrinal accuracy and precision of the episode of the "Come, Follow Me" podcast below. You should ensure \
+that the episode is doctrinally sound according to the official positions of the Church of Jesus Christ of Latter-day \
+Saints. You should also ensure that the episode is spiritually uplifting and faith promoting. You should make sure \
+that the episode is engaging and that it invites all to come unto Christ through sincere repentance.
+
+Please review the episode below and provide feedback on any doctrinal inaccuracies or imprecisions. You should also \
+provide feedback on the spiritual uplift and faith-promoting nature of the episode. You should also provide feedback \
+on the engagement and invitation to come unto Christ.
+
+Please make a list of any changes that should be made to the episode to ensure that it is doctrinally sound, \
+spiritually uplifting, and engaging. Please provide a brief explanation of each change that you recommend, especially
+why it is important to make the change.
+
+The episode is as follows:
+{episode}
+"""
+
+
 class ScriptureInsightsFactory(pydantic.BaseModel):
     """A factory for creating insights into scripture passages.
 
@@ -469,6 +490,45 @@ async def generate_video_description(episode: Episode) -> str:
 
     Returns:
         The video description.
+
+    """
+    ...
+
+
+@magentic.chatprompt(
+    magentic.SystemMessage(CORRELATION_SYSTEM_PROMPT),
+)
+async def correlate_episode(episode: Episode) -> str:
+    """Correlate an episode to ensure doctrinal accuracy and spiritual uplift.
+
+    Args:
+        episode: The episode to correlate.
+
+    Returns:
+        The correlated episode.
+
+    """
+    ...
+
+
+@magentic.chatprompt(
+    magentic.SystemMessage(EPISODE_FLESH_OUT_GENERATION_PROMPT),
+    magentic.UserMessage("These are the criticisms from the Correlation Committee:\n\n{correlation_feedback}"),
+    magentic.UserMessage(
+        "Please revise the episode outline based on the feedback. Make sure to address each criticism if needed, "
+        "ensuring that the episode is doctrinally sound, spiritually uplifting, and engaging, which invites all to "
+        "come unto Jesus Christ."
+    ),
+)
+async def revise_episode(episode_outline: Episode, correlation_feedback: str) -> Episode:
+    """Revise an episode based on feedback.
+
+    Args:
+        episode_outline: The episode outline to revise.
+        correlation_feedback: The feedback from the Correlation Committee.
+
+    Returns:
+        The revised episode outline.
 
     """
     ...

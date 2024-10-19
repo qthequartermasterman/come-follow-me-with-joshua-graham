@@ -17,9 +17,11 @@ from generate_show import files, prompt
 from generate_show.curriculum import ComeFollowMeCurriculum, fetch_curriculum, get_all_curriculum_for_year
 from generate_show.prompt import (
     ScriptureInsights,
+    correlate_episode,
     generate_episode,
     generate_episode_outline,
     generate_video_description,
+    revise_episode,
 )
 
 LOGGER = logging.getLogger()
@@ -122,6 +124,12 @@ async def main(
         episode = prompt.Episode.parse_raw(script_file.read_text())
     else:
         episode = await generate_episode(cfm_curriculum.scripture_reference, episode_outline=episode_outline)
+        LOGGER.info("Episode generated successfully. Correlating with doctrine...")
+        correlation_comments = await correlate_episode(episode)
+        LOGGER.info("Correlation comments:\n%s", correlation_comments)
+        LOGGER.info("Revising episode...")
+        episode = await revise_episode(episode, correlation_comments)
+        LOGGER.info("Episode revised successfully. Writing to file...")
         script_file.write_text(episode.model_dump_json(indent=4))
     LOGGER.info(episode.model_dump_json(indent=4))
 
