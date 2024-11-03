@@ -17,7 +17,7 @@ from generate_show import curriculum
 CLIENT_SECRETS_FILE = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", None)
 
 # API scopes
-YOUTUBE_SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
+YOUTUBE_SCOPES = ["https://www.googleapis.com/auth/youtube.upload", "https://www.googleapis.com/auth/youtube.force-ssl"]
 
 # API service name and version
 YOUTUBE_API_SERVICE_NAME = "youtube"
@@ -77,6 +77,8 @@ Subscribe for more scripture studies and reflections on faith, redemption, and t
 through the lens of Joshua Graham.
 """
 
+PLAYLIST_ID = "PLtNHSwdyvlauyCDRBhCEGIU4ks1tlO4yh"
+
 
 def get_authenticated_service_youtube() -> Any:
     """Get an authenticated YouTube service.
@@ -125,6 +127,8 @@ def publish_episode_to_youtube(
             "description": video_description,
             "tags": YOUTUBE_TAGS,
             "categoryId": "27",  # Education
+            "defaultLanguage": "en",
+            "defaultAudioLanguage": "en",
         },
         "status": {
             "privacyStatus": "private",  # Options: public, private, unlisted
@@ -140,6 +144,21 @@ def publish_episode_to_youtube(
 
     logging.info("Uploading video to YouTube")
     response = request.execute()
+
+    # Insert the video into the playlist
+    request = youtube.playlistItems().insert(
+        part="snippet",
+        body={
+            "snippet": {
+                "playlistId": PLAYLIST_ID,
+                "resourceId": {
+                    "kind": "youtube#video",
+                    "videoId": response["id"],
+                },
+            },
+        },
+    )
+    request.execute()
 
     url = f"https://www.youtube.com/watch?v={response['id']}"
 
