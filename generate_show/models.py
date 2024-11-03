@@ -286,3 +286,19 @@ class Episode(EpisodeOutline):
         )
 
         logging.info("Video created at %s", final_video)
+
+    def generate_transcript(
+        self,
+        output_dir: pathlib.Path,
+    ) -> None:
+        """Generate a transcript for the episode."""
+        logging.info("Generating transcript")
+        transcript = "[music]"
+        transcript += f"\nJoshua Graham >> {self.introduction}"
+        transcript += "\n[music]"
+        for segment in self.segments:
+            transcript += f"\n\n\nJoshua Graham >> {segment.text}"
+        transcript += f"\n\n\nJoshua Graham >> {self.closing}"
+        transcript += "\n[music]"
+        transcript_file = output_dir / files.TRANSCRIPT_FILENAME
+        transcript_file.write_text(transcript)

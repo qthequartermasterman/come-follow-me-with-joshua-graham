@@ -158,6 +158,8 @@ async def main(
 
     LOGGER.info(video_description)
 
+    episode.generate_transcript(lesson_dir)
+
     input(
         "\n\n⚠️⚠️Please review the video description.⚠️⚠️\n\nYou are about to upload this video to YouTube.\n\n"
         f"Publishing Date: {publish_date}\n\n"
