@@ -61,7 +61,8 @@ def create_intro_clip_with_fades(output_dir: pathlib.Path) -> None:
     final_fade_in_music_clip = final_music_clip.fade_in(INTRO_FINAL_FADE_IN_DURATION_MS).fade_out(
         INTRO_FINAL_FADE_OUT_DURATION_MS
     )
-    final_fade_clip = first_music_with_intro.append(
+    length_of_silence = 2000
+    final_fade_clip = (first_music_with_intro + pydub.AudioSegment.silent(duration=length_of_silence)).append(
         final_fade_in_music_clip, crossfade=INTRO_FINAL_FADE_OUT_DURATION_MS
     )
     final_fade_clip.export(final_file, format="mp3")
