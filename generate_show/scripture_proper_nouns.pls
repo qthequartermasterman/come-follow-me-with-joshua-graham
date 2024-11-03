@@ -667,10 +667,7 @@
         <grapheme>Jacom</grapheme>
         <phoneme>ˈdʒeɪ.kʌm</phoneme>
     </lexeme>
-    <lexeme>
-        <grapheme>Jared</grapheme>
-        <phoneme>ˈdʒɛr.əd</phoneme>
-    </lexeme>
+
     <lexeme>
         <grapheme>Jaredite</grapheme>
         <phoneme>ˈdʒɛr.əˌdaɪt</phoneme>
@@ -706,10 +703,6 @@
     <lexeme>
         <grapheme>Jershon</grapheme>
         <phoneme>ˈdʒɜr.ʃɑn</phoneme>
-    </lexeme>
-    <lexeme>
-        <grapheme>Joshua</grapheme>
-        <phoneme>ˈdʒɒʃ.ju.ə</phoneme>
     </lexeme>
     <lexeme>
         <grapheme>Jotham</grapheme>
