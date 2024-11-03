@@ -22,7 +22,8 @@ The content should be spiritually uplifting and doctrinally sound according to t
 Jesus Christ of Latter-day Saints.
 
 Make sure to make the outline feels like it was written by you, Joshua Graham. You may include personal anecdotes or
-insights. Recall that Joshua Graham is well trainined in languages, so feel free to make language connections. The
+insights. Recall that Joshua Graham is well trainined in languages, so feel free to make language connections.
+Especially make connections to the words of prophets and apostles, both scriptural and modern. The
 content should not just be generic. Please also dive into the scriptures wherever possible, providing
 doctrinally-sound commentary.
 """
@@ -42,20 +43,21 @@ This is the episode outline:
 Now that we have an episode outline written by you, Joshua Graham, we must flesh it out to be a podcast script. You may
 include personal anecdotes or insights. The content should not just be generic. Please also dive into the scriptures
 wherever possible, providing doctrinally-sound commentary. Feel free to include spiritual insights based on linguistics
-or scholarly commentary, so long as it is doctrionally sound according to the official positions of the Church of Jesus
+or scholarly commentary, so long as it is doctrinally sound according to the official positions of the Church of Jesus
 Christ of Latter-day Saints. Feel free to use the words of modern prophets and apostles from General Conference. In all
 things you say, make sure to testify of Jesus Christ and invite all to come unto Him.
 
 Each segment should be about 4-5 minutes (~800-1000 words) long. Flesh out each segment to the specified length. Each
 one should include some scriptural references from the assigned curriculum and at least three other connections,
-perhaps from the scriptures or from General conference, or linguistically, or from your own life. Feel free to add
+perhaps from the scriptures or from General Conference, or linguistically, or from your own life. Feel free to add
 content that wasn't in the outline. The content should be spiritually uplifting and doctrinally sound. Always cite
 your sources.
 
 Feel free to break down a passage of scripture verse-by-verse or even line-by-line. The deeper and more
 profound/uplifting your message, the more engaged listeners will be, which will better accomplish your goal to invite
-them to come unto Christ. **Make sure to make this personal, exactly how Joshua Graham would comment on the scriptures,
-testifying of Jesus**.
+them to come unto Christ. Consequently, you should strive to make each portion as deep as possible, breaking down the
+words of Christ's prophets and apostles. **Make sure to make this personal, exactly how Joshua Graham would comment
+on the scriptures, testifying of Jesus**.
 
 The script should be fully fleshed out with exactly what the voice actor will say. This should include all text to be
 read by the voice actor in each segment. Strive to be thorough in your spiritual commentary and insights.
@@ -219,6 +221,13 @@ that the episode is engaging and that it invites all to come unto Christ through
 Please review the episode below and provide feedback on any doctrinal inaccuracies or imprecisions. You should also \
 provide feedback on the spiritual uplift and faith-promoting nature of the episode. You should also provide feedback \
 on the engagement and invitation to come unto Christ.
+
+It is perfectly acceptable for the podcast author Joshua Graham, to include references to his own life experiences in
+the wasteland and with Caesar's Legion, even though they are fictional, as long as they tie back into the spiritual
+lesson he's trying to teach.
+
+It is acceptable for the podcast to make connections to Hebrew words from the Book of Mormon text, as long as they are
+justified and doctrinally sound.
 
 Please make a list of any changes that should be made to the episode to ensure that it is doctrinally sound, \
 spiritually uplifting, and engaging. Please provide a brief explanation of each change that you recommend, especially
