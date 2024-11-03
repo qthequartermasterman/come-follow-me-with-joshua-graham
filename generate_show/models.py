@@ -163,7 +163,8 @@ class EpisodeOutline(CacheModel):
     title: str = pydantic.Field(
         description=(
             "The title of the episode providing insight about the content of the episode, but is still succinct and"
-            " catchy to attract listeners."
+            " catchy to attract listeners. Do not include the scripture reference in the title. This must be less than"
+            " 40 characters long."
         )
     )
     introduction: str = pydantic.Field(
