@@ -262,7 +262,7 @@ async def get_talks(
 
     query = scripture_ref.get_scripture_text()
 
-    results, _ = retriever.retrieve(bm25s.tokenize(query), k=maximum_number_of_talks)
+    results, _ = retriever.retrieve(bm25s.tokenize(query), k=min(maximum_number_of_talks, len(talks)))
     return_list = []
     for result in results[0]:
         key, _ = result.split(":", maxsplit=1)
