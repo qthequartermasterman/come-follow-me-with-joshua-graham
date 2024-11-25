@@ -21,7 +21,7 @@ classifiers = [
   "License :: OSI Approved :: MIT License",
 ]
 dependencies = [
-  "bm25s==0.2.3",
+  "bm25s==0.2.4",
   "beautifulsoup4==4.12.3",
   "elevenlabs==1.12.1",
   "httpx==0.27.2",
