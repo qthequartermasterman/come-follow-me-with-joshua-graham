@@ -17,7 +17,10 @@ GET_TALK_URL = "https://scriptures.byu.edu/content/talks_ajax/{talk_number}/"
 GET_VERSE_REFERENCES_REGEX = re.compile(r"getSci\('\d+', '\d+', '([\d\-,]+)', '\d*'\)")
 GET_TALK_REFERENCE_REGEX = re.compile(r"getTalk\('(\d+)', '(\d+)'")
 
-ASYNC_CLIENT = httpx.AsyncClient()
+
+timeouts = httpx.Timeout(5.0, pool=None)
+limits = httpx.Limits(max_keepalive_connections=5, max_connections=10)
+ASYNC_CLIENT = httpx.AsyncClient(timeout=timeouts, limits=limits)
 
 
 CITATION_INDEX_BOOK_NUMBERS = {
