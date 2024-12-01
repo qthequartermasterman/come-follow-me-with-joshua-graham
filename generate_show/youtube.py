@@ -132,7 +132,7 @@ def publish_episode_to_youtube(
         },
         "status": {
             "privacyStatus": "private",  # Options: public, private, unlisted
-            "publishAt": publish_date.isoformat() + "Z",  # Scheduled time in ISO format
+            "publishAt": publish_date.isoformat(),  # Scheduled time in ISO format
         },
     }
 
@@ -186,6 +186,6 @@ def determine_publish_date(cfm_curriculum: curriculum.ComeFollowMeCurriculum) ->
 
     # If the publish date is in the past, then set it to an hour from now
     if publish_date.astimezone(datetime.timezone.utc) < datetime.datetime.now(datetime.timezone.utc):
-        publish_date = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=1)
+        publish_date = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=2)
 
     return publish_date
