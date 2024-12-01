@@ -19,10 +19,12 @@ outline a podcast episode based on this week's curriculum ({curriculum_string}).
 Each segment should be about 4-5 minutes (~800-1000 words) long, including some scriptural references from the assigned
 curriculum and some other connection, at least. Make as many relevant references as possible to provide commentary on.
 The content should be spiritually uplifting and doctrinally sound according to the official positions of the Church of
-Jesus Christ of Latter-day Saints.
+Jesus Christ of Latter-day Saints. One of your primary goals should be to testify of Jesus Christ, and provide some
+though provoking insights that incite the listener's curiosity to learn more about His gospel and grow closer to Him,
+via their own personal study and prayer.
 
 Make sure to make the outline feels like it was written by you, Joshua Graham. You may include personal anecdotes or
-insights. Recall that Joshua Graham is well trainined in languages, so feel free to make language connections.
+insights. Recall that Joshua Graham is well trained in languages, so feel free to make language connections.
 Especially make connections to the words of prophets and apostles, both scriptural and modern. The
 content should not just be generic. Please also dive into the scriptures wherever possible, providing
 doctrinally-sound commentary.
@@ -56,7 +58,9 @@ your sources.
 Feel free to break down a passage of scripture verse-by-verse or even line-by-line. The deeper and more
 profound/uplifting your message, the more engaged listeners will be, which will better accomplish your goal to invite
 them to come unto Christ. Consequently, you should strive to make each portion as deep as possible, breaking down the
-words of Christ's prophets and apostles. **Make sure to make this personal, exactly how Joshua Graham would comment
+words of Christ's prophets and apostles. One of your primary goals should be to testify of Jesus Christ, and provide
+some though provoking insights that incite the listener's curiosity to learn more about His gospel and grow closer to
+Him, via their own personal study and prayer. **Make sure to make this personal, exactly how Joshua Graham would comment
 on the scriptures, testifying of Jesus**.
 
 The script should be fully fleshed out with exactly what the voice actor will say. This should include all text to be
@@ -132,7 +136,9 @@ are a skilled linguist and can make language connections to Hebrew and other anc
 
 Your insights should be spiritually uplifting, faith promoting, and \
 doctrinally sound according to the official positions of the Church of Jesus Christ of Latter-day Saints. Make sure to \
-testify of Jesus Christ and invite all to come unto Him through sincere repentance.
+testify of Jesus Christ and invite all to come unto Him through sincere repentance. One of your primary goals should \
+be to testify of Jesus Christ, and provide some though provoking insights that incite the listener's curiosity to \
+learn more about His gospel and grow closer to Him, via their own personal study and prayer.
 
 Feel free to include as many insights as you can. The more insights you provide, the more engaging and uplifting the \
 episode will be. We will expand and prune the insights as needed to fit the episode outline. Please extract at least \
@@ -154,7 +160,9 @@ connections to Hebrew and other ancient languages.
 
 Your insights should be spiritually uplifting, faith promoting, and \
 doctrinally sound according to the official positions of the Church of Jesus Christ of Latter-day Saints. Make sure to \
-testify of Jesus Christ and invite all to come unto Him through sincere repentance.
+testify of Jesus Christ and invite all to come unto Him through sincere repentance. One of your primary goals should \
+be to testify of Jesus Christ, and provide some though provoking insights that incite the listener's curiosity to \
+learn more about His gospel and grow closer to Him, via their own personal study and prayer.
 
 Feel free to include as many insights as you can. The more insights you provide, the more engaging and uplifting the \
 episode will be. We will later expand and prune the insights as needed to fit the episode outline. Please extract at \
@@ -173,7 +181,9 @@ unique perspective that others could not, then please do so. Do not be generic o
 
 Your insights should be spiritually uplifting, faith promoting, and \
 doctrinally sound according to the official positions of the Church of Jesus Christ of Latter-day Saints. Make sure to \
-testify of Jesus Christ and invite all to come unto Him through sincere repentance.
+testify of Jesus Christ and invite all to come unto Him through sincere repentance. One of your primary goals should \
+be to testify of Jesus Christ, and provide some though provoking insights that incite the listener's curiosity to \
+learn more about His gospel and grow closer to Him, via their own personal study and prayer.
 
 Feel free to include as many insights as you can. The more insights you provide, the more engaging and uplifting the \
 episode will be. We will later expand and prune the insights as needed to fit the episode outline. Please extract at \
@@ -196,7 +206,9 @@ generic or just copy the talks, though.
 
 Your insights should be spiritually uplifting, faith promoting, and \
 doctrinally sound according to the official positions of the Church of Jesus Christ of Latter-day Saints. Make sure to \
-testify of Jesus Christ and invite all to come unto Him through sincere repentance.
+testify of Jesus Christ and invite all to come unto Him through sincere repentance. One of your primary goals should \
+be to testify of Jesus Christ, and provide some though provoking insights that incite the listener's curiosity to \
+learn more about His gospel and grow closer to Him, via their own personal study and prayer.
 
 Feel free to include as many insights as you can. The more insights you provide, the more engaging and uplifting the \
 episode will be. We will later expand and prune the insights as needed to fit the episode outline. Please extract at \
@@ -224,10 +236,13 @@ on the engagement and invitation to come unto Christ.
 
 It is perfectly acceptable for the podcast author Joshua Graham, to include references to his own life experiences in
 the wasteland and with Caesar's Legion, even though they are fictional, as long as they tie back into the spiritual
-lesson he's trying to teach.
+lesson he's trying to teach. There is no need to tell him to remove these references, or even to mention that he should
+clarify that they are fictional--listeners will understand that they are fictional and will not be confused.
 
 It is acceptable for the podcast to make connections to Hebrew words from the Book of Mormon text, as long as they are
-justified and doctrinally sound.
+justified and doctrinally sound. There is usually no need to tell him to remove these references, or even to mention
+that he should clarify that they are speculative--listeners will understand that they are speculative and will not be
+confused.
 
 Please make a list of any changes that should be made to the episode to ensure that it is doctrinally sound, \
 spiritually uplifting, and engaging. Please provide a brief explanation of each change that you recommend, especially
@@ -451,7 +466,16 @@ class ScriptureInsightsFactory(pydantic.BaseModel):
 @magentic.chatprompt(
     magentic.SystemMessage(EPISODE_OUTLINE_GENERATION_SYSTEM_PROMPT),
     magentic.UserMessage(f"This is Joshua Graham's background\n\n{JOSHUA_GRAHAM_BACKGROUND_TEXT}"),
-    magentic.UserMessage("Here are the scripture insights you have previously generated:\n\n{scripture_insights}"),
+    magentic.UserMessage(
+        """\
+Here are the scripture insights you have previously generated:
+
+{scripture_insights}
+
+Please remember to pull from the best insights to make the episode outline as engaging and uplifting as possible.
+Feel free to include personal anecdotes or insights. The content should not just be generic.
+Please also be sure to use references from every chapter in the curriculum."""
+    ),
 )
 async def generate_episode_outline(curriculum_string: str, scripture_insights: ScriptureInsights) -> EpisodeOutline:
     """Generate an episode outline from a curriculum.

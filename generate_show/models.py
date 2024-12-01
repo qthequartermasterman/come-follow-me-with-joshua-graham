@@ -114,6 +114,15 @@ class ScriptureInsight(pydantic.BaseModel):
             " and testify of Jesus Christ."
         )
     )
+    depth_score: int = pydantic.Field(
+        default=3,  # Default here for backwards compatibility
+        description=(
+            "A score from 1 to 10 indicating the spiritual depth of the insight. A score of 1 indicates a basic"
+            "insight, while a score of 10 indicates a profound insight, that will cause the listener to have to pause"
+            "and ponder the insight, and may lead to a spiritual experience or revelation as they study the scripture"
+            "and pray about the insight."
+        ),
+    )
 
 
 class ScriptureInsights(CacheModel):
@@ -131,7 +140,9 @@ class ScriptureInsights(CacheModel):
     def compile_insights(cls, *insights: "ScriptureInsights") -> "ScriptureInsights":
         """Compile the insights into a single text string."""
         insights_combined = [insight for insight_set in insights for insight in insight_set.insights]
-        insights_combined = list(sorted(insights_combined, key=lambda insight: insight.reference))
+        insights_combined = list(
+            sorted(insights_combined, key=lambda insight: (insight.reference, insight.depth_score))
+        )
         return cls(insights=insights_combined)
 
 
