@@ -44,7 +44,7 @@ dynamic = ["version"]
 
 [project.optional-dependencies]
 dev = ["pre-commit==4.0.1", "pyright==1.1.389", "ruff==0.7.4",]
-test = ["pytest==8.3.3", "hypothesis==6.119.3"]
+test = ["pytest==8.3.3", "hypothesis==6.122.3"]
 
 [project.urls]
 "Homepage" = "https://github.com/qthequartermasterman/come-follow-me-with-joshua-graham"
