@@ -15,7 +15,10 @@ from typing_extensions import ParamSpec, TypeVar
 from generate_show import models
 from generate_show import scripture_reference as scripture_reference_module
 
-CURRICULUM_LINK = "https://www.churchofjesuschrist.org/study/manual/come-follow-me-for-home-and-church-book-of-mormon-2024/{week_number}?lang=eng"
+CURRICULUM_LINKS = {
+    2024: "https://www.churchofjesuschrist.org/study/manual/come-follow-me-for-home-and-church-book-of-mormon-2024/{week_number}?lang=eng",
+    2025: "https://www.churchofjesuschrist.org/study/manual/come-follow-me-for-home-and-church-doctrine-and-covenants-2025/{week_number}?lang=eng",
+}
 ASYNC_CLIENT = httpx.AsyncClient()
 
 P = ParamSpec("P")
@@ -51,19 +54,23 @@ class ComeFollowMeCurriculum(models.CacheModel):
         if body is None:
             raise ValueError("Could not find body tag in curriculum text")
         curriculum_text = body.get_text()
-        assert isinstance(body, bs4.BeautifulSoup)
-        internal_scriptural_references_tags = body.find_all("a", {"class": "scripture-ref"})
-        internal_scriptural_references_text = [
-            tag.get_text().replace("&nbsp", " ").replace("\xa0", " ") for tag in internal_scriptural_references_tags
-        ]
-        internal_scriptural_references = []
-        for reference_text in internal_scriptural_references_text:
-            try:
-                internal_scriptural_references.append(
-                    scripture_reference_module.ScriptureReference.from_string(reference_text)
-                )
-            except (scripture_reference_module.ScriptureReferenceError, ValueError):
-                logging.warning("Could not parse scripture reference %s", reference_text)
+
+        internal_scriptural_references: list[scripture_reference_module.ScriptureReference] | None
+        if isinstance(body, bs4.NavigableString):
+            internal_scriptural_references = None
+        else:
+            internal_scriptural_references_tags = body.find_all("a", {"class": "scripture-ref"})
+            internal_scriptural_references_text = [
+                tag.get_text().replace("&nbsp", " ").replace("\xa0", " ") for tag in internal_scriptural_references_tags
+            ]
+            internal_scriptural_references = []
+            for reference_text in internal_scriptural_references_text:
+                try:
+                    internal_scriptural_references.append(
+                        scripture_reference_module.ScriptureReference.from_string(reference_text)
+                    )
+                except (scripture_reference_module.ScriptureReferenceError, ValueError):
+                    logging.warning("Could not parse scripture reference %s", reference_text)
         return cls(
             title=lesson_title,
             scripture_reference=lesson_reference,
@@ -125,11 +132,12 @@ async def fetch_website_text(url: str) -> str:
 
 
 @ComeFollowMeCurriculum.async_cache_pydantic_model
-async def fetch_curriculum(week_number: int) -> ComeFollowMeCurriculum:
+async def fetch_curriculum(week_number: int, year: int) -> ComeFollowMeCurriculum:
     """Fetch the curriculum text for a given week number.
 
     Args:
         week_number: The week number of the curriculum to fetch.
+        year: The year of the curriculum to fetch.
 
     Returns:
         The text of the curriculum.
@@ -137,17 +145,20 @@ async def fetch_curriculum(week_number: int) -> ComeFollowMeCurriculum:
     """
     logging.info("Fetching curriculum text")
     week_number_str = str(week_number).zfill(2)
-    curriculum_link = CURRICULUM_LINK.format(week_number=week_number_str)
+    curriculum_link = CURRICULUM_LINKS[year].format(week_number=week_number_str)
     text = await fetch_website_text(curriculum_link)
     return ComeFollowMeCurriculum.parse_from_text(text)
 
 
-async def get_all_curriculum_for_year() -> dict[int, ComeFollowMeCurriculum]:
+async def get_all_curriculum_for_year(year: int) -> dict[int, ComeFollowMeCurriculum]:
     """Get all the curriculum for the year.
+
+    Args:
+        year: The year of the curriculum to fetch.
 
     Returns:
         A dictionary of the curriculum for each week.
 
     """
-    curriculum_tasks = await asyncio.gather(*[fetch_curriculum(week_number) for week_number in range(1, 53)])
+    curriculum_tasks = await asyncio.gather(*[fetch_curriculum(week_number, year) for week_number in range(1, 53)])
     return {i: task for i, task in enumerate(curriculum_tasks, start=1)}
