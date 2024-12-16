@@ -335,7 +335,10 @@ class ScriptureReference(pydantic.BaseModel, frozen=True):
             if found_end:
                 break
 
-        return "\n".join(verse_texts)
+        text = "\n".join(verse_texts)
+        if not text:
+            raise ValueError(f"Scripture reference {self} not found in the scriptures")
+        return text
 
     def split_chapters(self) -> list["ScriptureReference"]:
         """Split a scripture reference spanning multiple chapters or books into individual chapter references.
