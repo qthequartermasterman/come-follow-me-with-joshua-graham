@@ -28,18 +28,41 @@ LOGGER = logging.getLogger()
 LOGGER.setLevel(logging.INFO)
 
 
-async def curriculum_menu() -> ComeFollowMeCurriculum:
+def year_menu() -> int:
+    """Select a Come, Follow Me year to generate an episode for with an interactive menu.
+
+    Returns:
+        The selected year.
+
+    """
+    years = [2024, 2025]
+    current_year = datetime.datetime.now().year
+    current_year_index = next((index for index, year in enumerate(years) if year == current_year), 0)
+    year_menu = simple_term_menu.TerminalMenu(
+        [str(year) for year in years], title="Select a Come, Follow Me year...", cursor_index=current_year_index
+    )
+    chosen_year_index = year_menu.show()
+    assert isinstance(chosen_year_index, int)
+    return years[chosen_year_index]
+
+
+async def curriculum_menu(year: int) -> ComeFollowMeCurriculum:
     """Select a Come, Follow Me curriculum to generate an episode for with an interactive menu.
+
+    Args:
+        year: The year of the Come, Follow Me curriculum to generate an episode for.
 
     Returns:
         The selected curriculum.
 
     """
-    curricula = await get_all_curriculum_for_year()
+    current_year = datetime.datetime.now().year
+
+    curricula = await get_all_curriculum_for_year(year)
     menu_options = [f"{curriculum.title} ({curriculum.scripture_reference})" for curriculum in curricula.values()]
     now = datetime.datetime.now()
     lesson_index = next(
-        (index for index, week in curricula.items() if week.start_date > now),
+        (index for index, week in curricula.items() if week.start_date > now and week.start_date.year == current_year),
         0,
     )
     menu = simple_term_menu.TerminalMenu(
@@ -51,6 +74,7 @@ async def curriculum_menu() -> ComeFollowMeCurriculum:
 
 
 async def main(
+    year: int | None = None,
     week_number: int | None = None,
     output_dir: str | pathlib.Path = pathlib.Path("./episodes"),
     upload_to_youtube: bool = True,
@@ -58,6 +82,7 @@ async def main(
     """Generate an episode of "Come, Follow Me with Joshua Graham".
 
     Args:
+        year: The year of the Come, Follow Me curriculum to generate an episode for.
         week_number: The week number of the curriculum to generate an episode for.
         output_dir: The directory to save the episode to.
         upload_to_youtube: Whether to upload the episode to YouTube.
@@ -78,10 +103,13 @@ async def main(
 
     output_dir = pathlib.Path(output_dir)
 
+    if year is None:
+        year = year_menu()
+
     if week_number is not None:
-        cfm_curriculum = await fetch_curriculum(week_number)
+        cfm_curriculum = await fetch_curriculum(week_number, year)
     else:
-        cfm_curriculum = await curriculum_menu()
+        cfm_curriculum = await curriculum_menu(year)
 
     input(
         'You are about to create an episode of "Come, Follow Me with Joshua Graham" for the lesson\n'

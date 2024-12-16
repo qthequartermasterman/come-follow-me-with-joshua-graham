@@ -17,10 +17,10 @@ from typing_extensions import ParamSpec, TypeVar
 from generate_show import models
 from generate_show import scripture_reference as scripture_reference_module
 
-CURRICULUM_LINKS = {
-    2024: "https://www.churchofjesuschrist.org/study/manual/come-follow-me-for-home-and-church-book-of-mormon-2024/{week_number}?lang=eng",
-    2025: "https://www.churchofjesuschrist.org/study/manual/come-follow-me-for-home-and-church-doctrine-and-covenants-2025/{week_number}?lang=eng",
-}
+CURRICULUM_LINK_2024 = "https://www.churchofjesuschrist.org/study/manual/come-follow-me-for-home-and-church-book-of-mormon-2024/{week_number}?lang=eng"
+CURRICULUM_HOME_LINK_2025 = "https://www.churchofjesuschrist.org/study/manual/come-follow-me-for-home-and-church-doctrine-and-covenants-2025?lang=eng"
+CURRICULUM_ROOT_LINK_2025 = "https://www.churchofjesuschrist.org"
+
 ASYNC_CLIENT = httpx.AsyncClient()
 
 P = ParamSpec("P")
@@ -72,7 +72,12 @@ class ComeFollowMeCurriculum(models.CacheModel):
                         scripture_reference_module.ScriptureReference.from_string(reference_text)
                     )
                 except (scripture_reference_module.ScriptureReferenceError, ValueError):
-                    logging.warning("Could not parse scripture reference %s", reference_text)
+                    logging.warning(
+                        "Could not parse scripture reference %s in lesson %s (%s)",
+                        reference_text,
+                        lesson_title,
+                        lesson_reference,
+                    )
         return cls(
             title=lesson_title,
             scripture_reference=lesson_reference,
@@ -147,7 +152,30 @@ async def fetch_curriculum(week_number: int, year: int) -> ComeFollowMeCurriculu
     """
     logging.info("Fetching curriculum text")
     week_number_str = str(week_number).zfill(2)
-    curriculum_link = CURRICULUM_LINKS[year].format(week_number=week_number_str)
+    if year == 2024:
+        curriculum_link = CURRICULUM_LINK_2024.format(week_number=week_number_str)
+    elif year == 2025:
+        # We have to dynamically fetch the home page for the curriculum to get the week links, because the titles are
+        # embedded in the links
+        curriculum_home_text = await fetch_website_text(CURRICULUM_HOME_LINK_2025)
+
+        # The individual page links `a` tags with
+        # href=/study/manual/come-follow-me-for-home-and-church-doctrine-and-covenants-2025/01-*?lang=eng,
+        # with * being arbitrary text for the title
+        soup = bs4.BeautifulSoup(curriculum_home_text, "html.parser")
+        links = soup.find_all("a", href=True)
+        curriculum_link = None
+        for link in links:
+            if (
+                f"/study/manual/come-follow-me-for-home-and-church-doctrine-and-covenants-2025/{week_number_str}"
+                in link["href"]
+            ):
+                curriculum_link = CURRICULUM_ROOT_LINK_2025 + link["href"]
+                break
+        if curriculum_link is None:
+            raise ValueError(f"Could not find curriculum link for week {week_number} in year {year}")
+    else:
+        raise NotImplementedError(f"Year {year} is not a valid year for the Come, Follow Me curriculum")
     text = await fetch_website_text(curriculum_link)
     return ComeFollowMeCurriculum.parse_from_text(text)
 
