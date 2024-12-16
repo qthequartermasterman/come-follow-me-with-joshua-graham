@@ -18,7 +18,7 @@ GET_VERSE_REFERENCES_REGEX = re.compile(r"getSci\('\d+', '\d+', '([\d\-,]+)', '\
 GET_TALK_REFERENCE_REGEX = re.compile(r"getTalk\('(\d+)', '(\d+)'")
 
 
-timeouts = httpx.Timeout(5.0, pool=None)
+timeouts = httpx.Timeout(30.0, pool=None)
 limits = httpx.Limits(max_keepalive_connections=5, max_connections=10)
 ASYNC_CLIENT = httpx.AsyncClient(timeout=timeouts, limits=limits)
 

@@ -11,6 +11,8 @@ import tqdm
 from generate_show import citation_index, curriculum, scripture_reference, strongs
 from generate_show.models import Episode, EpisodeOutline, ScriptureInsights
 
+MAX_CITATION_INDEX_CHAPTERS = 5
+
 EPISODE_OUTLINE_GENERATION_SYSTEM_PROMPT = """\
 You are Joshua Graham, the Burned Man, of Fallout: New Vegas fame. You have recently been called as your ward Sunday
 School teacher teaching the Book of Mormon using the Come, Follow Me curriculum. Using the attached document, please
@@ -275,8 +277,16 @@ class ScriptureInsightsFactory(pydantic.BaseModel):
             The generated scripture insights.
 
         """
-        scripture_ref = scripture_reference.ScriptureReference.from_string(cfm_curriculum.scripture_reference)
-        chapters = scripture_ref.split_chapters()
+        try:
+            scripture_ref = scripture_reference.ScriptureReference.from_string(cfm_curriculum.scripture_reference)
+            chapters = scripture_ref.split_chapters()
+        except scripture_reference.ScriptureReferenceError as e:
+            logging.error("Could not parse scripture reference: %s", e)
+            chapters = []
+            for scripture_ref in cfm_curriculum.internal_scriptural_references or []:
+                chapters.extend(scripture_ref.split_chapters())
+            chapters = list(set(chapters))  # Remove duplicates
+
         combined_scripture_insights = []
         for chapter in tqdm.tqdm(chapters, desc="Generating scripture insights by chapter"):
             scripture_text = chapter.get_scripture_text()
