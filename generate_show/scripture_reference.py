@@ -25,6 +25,10 @@ SCRIPTUREVERSE_REGEX = re.compile(
 )
 
 
+class ScriptureReferenceError(ValueError):
+    """An error in a scripture reference."""
+
+
 class Book(str, enum.Enum):
     """The books of scripture."""
 
@@ -235,7 +239,7 @@ class ScriptureReference(pydantic.BaseModel, frozen=True):
         """
         match = SCRIPTUREVERSE_REGEX.match(ref)
         if match is None:
-            raise ValueError(f"Invalid scripture reference: {ref}")
+            raise ScriptureReferenceError(f"Invalid scripture reference: {ref}")
         start_book = match.group(1).strip()
         start_chapter = int(match.group(2))
         start_verse = int(match.group(3)) if match.group(3) else None

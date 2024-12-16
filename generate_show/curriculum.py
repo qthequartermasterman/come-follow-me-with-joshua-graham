@@ -9,9 +9,11 @@ from typing import Callable, Coroutine
 
 import bs4
 import httpx
+import pydantic
 from typing_extensions import ParamSpec, TypeVar
 
 from generate_show import models
+from generate_show import scripture_reference as scripture_reference_module
 
 CURRICULUM_LINK = "https://www.churchofjesuschrist.org/study/manual/come-follow-me-for-home-and-church-book-of-mormon-2024/{week_number}?lang=eng"
 ASYNC_CLIENT = httpx.AsyncClient()
@@ -26,6 +28,9 @@ class ComeFollowMeCurriculum(models.CacheModel):
     title: str
     scripture_reference: str
     text: str
+    internal_scriptural_references: list[scripture_reference_module.ScriptureReference] | None = pydantic.Field(
+        default=None, description="Scripture references found in the text of the curriculum."
+    )
 
     @classmethod
     def parse_from_text(cls, text: str) -> "ComeFollowMeCurriculum":
@@ -46,7 +51,25 @@ class ComeFollowMeCurriculum(models.CacheModel):
         if body is None:
             raise ValueError("Could not find body tag in curriculum text")
         curriculum_text = body.get_text()
-        return cls(title=lesson_title, scripture_reference=lesson_reference, text=curriculum_text)
+        assert isinstance(body, bs4.BeautifulSoup)
+        internal_scriptural_references_tags = body.find_all("a", {"class": "scripture-ref"})
+        internal_scriptural_references_text = [
+            tag.get_text().replace("&nbsp", " ").replace("\xa0", " ") for tag in internal_scriptural_references_tags
+        ]
+        internal_scriptural_references = []
+        for reference_text in internal_scriptural_references_text:
+            try:
+                internal_scriptural_references.append(
+                    scripture_reference_module.ScriptureReference.from_string(reference_text)
+                )
+            except (scripture_reference_module.ScriptureReferenceError, ValueError):
+                logging.warning("Could not parse scripture reference %s", reference_text)
+        return cls(
+            title=lesson_title,
+            scripture_reference=lesson_reference,
+            text=curriculum_text,
+            internal_scriptural_references=internal_scriptural_references,
+        )
 
     @property
     def start_date(self) -> datetime.datetime:
