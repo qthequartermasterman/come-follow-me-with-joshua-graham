@@ -23,7 +23,7 @@ classifiers = [
 dependencies = [
   "bm25s==0.2.5",
   "beautifulsoup4==4.12.3",
-  "elevenlabs==1.12.1",
+  "elevenlabs==1.50.2",
   "httpx==0.27.2",
   "magentic==0.32.0",
   "moviepy==1.0.3",
