@@ -278,8 +278,16 @@ class ScriptureInsightsFactory(pydantic.BaseModel):
 
         """
         try:
-            scripture_ref = scripture_reference.ScriptureReference.from_string(cfm_curriculum.scripture_reference)
-            chapters = scripture_ref.split_chapters()
+            if ";" in cfm_curriculum.scripture_reference:
+                scripture_refs = cfm_curriculum.scripture_reference.split(";")
+                scripture_refs = [ref.strip() for ref in scripture_refs]
+                chapters = []
+                for scripture_ref in scripture_refs:
+                    scripture_ref = scripture_reference.ScriptureReference.from_string(scripture_ref)
+                    chapters.extend(scripture_ref.split_chapters())
+            else:
+                scripture_ref = scripture_reference.ScriptureReference.from_string(cfm_curriculum.scripture_reference)
+                chapters = scripture_ref.split_chapters()
         except scripture_reference.ScriptureReferenceError as e:
             logging.error("Could not parse scripture reference: %s", e)
             chapters = []
@@ -290,6 +298,7 @@ class ScriptureInsightsFactory(pydantic.BaseModel):
         combined_scripture_insights = []
         for chapter in tqdm.tqdm(chapters, desc="Generating scripture insights by chapter"):
             scripture_text = chapter.get_scripture_text()
+            assert scripture_text, f"Could not find scripture text for {chapter}"
             insight_tasks = []
             if self.scripture_text_direct:
                 insight_tasks.append(
