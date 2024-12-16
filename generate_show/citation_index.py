@@ -223,7 +223,9 @@ async def get_talk_reference(book_number: int, chapter_number: int, verse_refere
 
 
 async def get_talks(
-    scripture_ref: scripture_reference.ScriptureReference, maximum_number_of_talks: int = 7
+    scripture_ref: scripture_reference.ScriptureReference,
+    maximum_number_of_talks_to_return: int = 7,
+    maximum_number_of_talks_to_scrape: int = 20,
 ) -> list[Talk]:
     """Get talks that reference a scripture reference.
 
@@ -231,7 +233,8 @@ async def get_talks(
 
     Args:
         scripture_ref: The scripture reference to get talks for.
-        maximum_number_of_talks: The maximum number of talks to return.
+        maximum_number_of_talks_to_return: The maximum number of talks to return.
+        maximum_number_of_talks_to_scrape: The maximum number of talks to scrape from the BYU Scripture Citation.
 
     Returns:
         A list of talks that reference the scripture reference.
@@ -253,7 +256,7 @@ async def get_talks(
                 verse_reference,
             )
         )
-        for verse_reference in verse_references
+        for verse_reference in verse_references[:maximum_number_of_talks_to_scrape]
     ]
     talks: list[Talk] = []
     for task in await asyncio.gather(*tasks):
@@ -265,7 +268,7 @@ async def get_talks(
 
     query = scripture_ref.get_scripture_text()
 
-    results, _ = retriever.retrieve(bm25s.tokenize(query), k=min(maximum_number_of_talks, len(talks)))
+    results, _ = retriever.retrieve(bm25s.tokenize(query), k=min(maximum_number_of_talks_to_return, len(talks)))
     return_list = []
     for result in results[0]:
         key, _ = result.split(":", maxsplit=1)
