@@ -105,7 +105,7 @@ class Strong(models.CacheModel):
         retriever = bm25s.BM25(corpus=corpus)
         retriever.index(bm25s.tokenize(corpus))
 
-        results, _ = retriever.retrieve(bm25s.tokenize(query), k=num_strong_results)
+        results, _ = retriever.retrieve(bm25s.tokenize(query), k=min(num_strong_results, len(corpus)))
         return_dictionary = {}
         for result in results[0]:
             key, _ = result.split(":", maxsplit=1)
