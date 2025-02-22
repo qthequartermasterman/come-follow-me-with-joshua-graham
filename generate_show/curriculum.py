@@ -36,13 +36,15 @@ class ComeFollowMeCurriculum(models.CacheModel):
     internal_scriptural_references: list[scripture_reference_module.ScriptureReference] | None = pydantic.Field(
         default=None, description="Scripture references found in the text of the curriculum."
     )
+    year: int
 
     @classmethod
-    def parse_from_text(cls, text: str) -> "ComeFollowMeCurriculum":
+    def parse_from_text(cls, text: str, year: int) -> "ComeFollowMeCurriculum":
         """Parse the curriculum text from the html text (from the Church's website).
 
         Args:
             text: The html text of the curriculum.
+            year: The year of the curriculum.
 
         Returns:
             The parsed curriculum text.
@@ -83,6 +85,7 @@ class ComeFollowMeCurriculum(models.CacheModel):
             scripture_reference=lesson_reference,
             text=curriculum_text,
             internal_scriptural_references=internal_scriptural_references,
+            year=year,
         )
 
     @property
@@ -93,7 +96,7 @@ class ComeFollowMeCurriculum(models.CacheModel):
             The start date of the curriculum.
 
         """
-        date_str = self.title.split("–")[0].strip() + ", 2024"
+        date_str = self.title.split("–")[0].strip() + f", {self.year}"
         return datetime.datetime.strptime(date_str, "%B %d, %Y")
 
 
@@ -177,7 +180,7 @@ async def fetch_curriculum(week_number: int, year: int) -> ComeFollowMeCurriculu
     else:
         raise NotImplementedError(f"Year {year} is not a valid year for the Come, Follow Me curriculum")
     text = await fetch_website_text(curriculum_link)
-    return ComeFollowMeCurriculum.parse_from_text(text)
+    return ComeFollowMeCurriculum.parse_from_text(text, year)
 
 
 async def get_all_curriculum_for_year(year: int) -> dict[int, ComeFollowMeCurriculum]:
