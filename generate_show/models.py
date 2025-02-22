@@ -110,7 +110,7 @@ class CacheModel(pydantic.BaseModel):
         return wrapper
 
 
-class ScriptureInsight(pydantic.BaseModel):
+class ScriptureInsight(ReasoningModel):
     """An insight into a scripture passage."""
 
     reference: str = pydantic.Field(
@@ -158,7 +158,7 @@ class ScriptureInsights(CacheModel):
         return cls(insights=insights_combined)
 
 
-class Segment(pydantic.BaseModel):
+class Segment(ReasoningModel):
     """A segment of an episode outline."""
 
     title: str = pydantic.Field(
