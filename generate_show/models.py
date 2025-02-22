@@ -7,9 +7,9 @@ import multiprocessing
 import pathlib
 from typing import Callable, Coroutine, Type
 
+import moviepy as mpy
 import pydantic
 import tqdm
-from moviepy import editor as mpy
 from typing_extensions import ParamSpec, TypeVar
 
 import generate_show.narration
@@ -282,7 +282,7 @@ class Episode(EpisodeOutline):
         audio = mpy.AudioFileClip(str(composite_audio))
 
         text = f"{self.title}\n({lesson_reference})"
-        text_clip = mpy.TextClip(text, font="Amiri-Bold", fontsize=60, color="white")
+        text_clip = mpy.TextClip(font="Amiri-Bold.ttf", text=text, font_size=60, color="white")
 
         background_file = output_dir / files.VIDEO_BACKGROUND_FILENAME
         background_clip = mpy.ImageClip(str(background_file))
@@ -291,13 +291,13 @@ class Episode(EpisodeOutline):
             mpy.CompositeVideoClip(
                 [
                     background_clip,
-                    text_clip.set_position(("center", 990 - text_clip.size[1] / 2)),
+                    text_clip.with_position(("center", 990 - text_clip.size[1] / 2)),
                 ],
                 size=(1920, 1080),
                 use_bgclip=True,
             )
-            .set_duration(audio.duration)
-            .set_audio(audio)
+            .with_duration(audio.duration)
+            .with_audio(audio)
         )
 
         final_clip.write_videofile(
