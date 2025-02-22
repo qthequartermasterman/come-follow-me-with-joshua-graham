@@ -20,6 +20,18 @@ P = ParamSpec("P")
 Model = TypeVar("Model", bound=pydantic.BaseModel)
 
 
+class ReasoningModel(pydantic.BaseModel):
+    """A model that includes reasoning for the output."""
+
+    reasoning: str = pydantic.Field(
+        description=(
+            "Think step by step about the response. Please provide all justification and reasoning to support your "
+            "produced output. The 'reasoning' field should include anything necessary for another scholar to understand"
+            " why you've come to your conclusion."
+        )
+    )
+
+
 class CacheModel(pydantic.BaseModel):
     """A pydantic model that can cache its output to a file."""
 
