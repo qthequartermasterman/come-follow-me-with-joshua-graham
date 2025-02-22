@@ -96,7 +96,10 @@ class ComeFollowMeCurriculum(models.CacheModel):
             The start date of the curriculum.
 
         """
-        date_str = self.title.split("–")[0].strip() + f", {self.year}"
+        beginning, end = self.title.split("–", maxsplit=1)
+        beginning, end = beginning.strip(), end.strip()
+        year = self.year - 1 if "Dec" in beginning and "Jan" in end else self.year
+        date_str = f"{beginning}, {year}"
         return datetime.datetime.strptime(date_str, "%B %d, %Y")
 
 
