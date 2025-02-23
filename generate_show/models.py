@@ -3,11 +3,10 @@
 import functools
 import hashlib
 import logging
-import multiprocessing
 import pathlib
+import subprocess
 from typing import Callable, Coroutine, Type
 
-import moviepy as mpy
 import pydantic
 import tqdm
 from typing_extensions import ParamSpec, TypeVar
@@ -257,9 +256,7 @@ class Episode(EpisodeOutline):
         composite_audio_files(output_dir, segment_files=self.segment_files)
 
     def save_video(self, output_dir: pathlib.Path, lesson_reference: str) -> None:
-        """Save the video for the episode.
-
-        Will not create the video if it already exists.
+        """Save the video for the episode using FFmpeg.
 
         Args:
             output_dir: The directory to save the video to.
@@ -278,36 +275,56 @@ class Episode(EpisodeOutline):
         composite_audio = output_dir / files.COMPOSITE_FILENAME
         if not composite_audio.exists():
             raise ValueError("Cannot create video without composite audio")
-
-        audio = mpy.AudioFileClip(str(composite_audio))
-
-        text = f"{self.title}\n({lesson_reference})"
-        text_clip = mpy.TextClip(font="Amiri-Bold.ttf", text=text, font_size=60, color="white")
-
         background_file = output_dir / files.VIDEO_BACKGROUND_FILENAME
-        background_clip = mpy.ImageClip(str(background_file))
 
-        final_clip: mpy.CompositeVideoClip = (
-            mpy.CompositeVideoClip(
-                [
-                    background_clip,
-                    text_clip.with_position(("center", 990 - text_clip.size[1] / 2)),
-                ],
-                size=(1920, 1080),
-                use_bgclip=True,
-            )
-            .with_duration(audio.duration)
-            .with_audio(audio)
+        # Prepare the text with an escaped newline.
+        # Note: double backslashes are used to pass a literal '\n' to ffmpeg.
+        text = f"{self.title}\n({lesson_reference})"
+        font_file = "Amiri-Bold.ttf"
+
+        # Construct the filter_complex string.
+        # The drawtext filter is used to overlay the text.
+        filter_complex = (
+            f"[0:v]scale=1920:1080,"
+            f"drawtext=fontfile={font_file}:text='{text}':"
+            f"fontcolor=white:fontsize=60:"
+            f"x=(w-text_w)/2:y=990-(text_h/2)[v]"
         )
 
-        final_clip.write_videofile(
+        # Build the ffmpeg command.
+        cmd = [
+            "ffmpeg",
+            "-y",  # Overwrite output file without asking.
+            "-loop",
+            "1",  # Loop the background image indefinitely.
+            "-i",
+            str(background_file),  # Input background image.
+            "-i",
+            str(composite_audio),  # Input audio file.
+            "-filter_complex",
+            filter_complex,  # Apply video filters.
+            "-map",
+            "[v]",  # Use the processed video stream.
+            "-map",
+            "1:a",  # Use the audio stream from the second input.
+            "-c:v",
+            "libx264",  # Encode video with H.264.
+            "-preset",
+            "ultrafast",  # Speed up encoding
+            "-tune",
+            "stillimage",  # Optimize settings for still images
+            "-r",
+            "24",  # Output frame rate (duplicate the single frame)
+            "-c:a",
+            "aac",  # Audio codec
+            "-pix_fmt",
+            "yuv420p",  # Pixel format for compatibility
+            "-shortest",  # End video when the audio stream ends
             str(final_video),
-            codec="libx264",
-            audio_codec="aac",
-            fps=24,
-            threads=multiprocessing.cpu_count(),
-        )
+        ]
 
+        # Run the command. If ffmpeg fails, an exception will be raised.
+        subprocess.run(cmd, check=True)
         logging.info("Video created at %s", final_video)
 
     def generate_transcript(
