@@ -60,8 +60,9 @@ class AncientTraditionEpisode(models.CacheModel):
 
         """
         soup = BeautifulSoup(html, features="html.parser")
-        title_header = soup.find("header", class_="elementor-widget-container")
-        assert title_header is not None
+        title_header = soup.find("h3", class_="elementor-heading-title")
+        if title_header is None:
+            raise ValueError(f"Could not find title header of episode {episode_no}.")
         title = title_header.text
 
         transcript_section = next(
