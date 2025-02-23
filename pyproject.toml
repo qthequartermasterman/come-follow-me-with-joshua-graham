@@ -28,7 +28,7 @@ dependencies = [
   "magentic==0.32.0",
   "moviepy==2.1.2",
   "openai==1.59.3",
-  "pydantic==2.9.2",
+  "pydantic==2.10.6",
   "pydub==0.25.1",
   "pydub-stubs==0.25.1.5",
   "typing-extensions==4.12.2",
