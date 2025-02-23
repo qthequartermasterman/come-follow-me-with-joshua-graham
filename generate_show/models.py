@@ -24,11 +24,20 @@ class ReasoningModel(pydantic.BaseModel):
     """A model that includes reasoning for the output."""
 
     reasoning: str = pydantic.Field(
+        default=None,
         description=(
             "Think step by step about the response. Please provide all justification and reasoning to support your "
             "produced output. The 'reasoning' field should include anything necessary for another scholar to understand"
             " why you've come to your conclusion."
-        )
+        ),
+    )
+    sources: str = pydantic.Field(
+        default=None,
+        description=(
+            "Please provide any sources that you used to come to your conclusion. This could include books, articles,"
+            " websites, or other resources that you used to come to your conclusion. Please provide full citations for"
+            " each source."
+        ),
     )
 
 
