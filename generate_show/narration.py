@@ -6,6 +6,7 @@ import re
 import warnings
 
 import elevenlabs
+import elevenlabs.core.api_error
 from elevenlabs import ElevenLabs, VoiceSettings
 
 VOICE_ID = "nBwyHk4MbE8FJ1GEsatX"  # Custom Joshua Graham voice
@@ -49,9 +50,12 @@ VOICE_SETTINGS = VoiceSettings(
     style=0.2,
 )
 ELEVENLABS_CLIENT = ElevenLabs()
-PRONUNCIATION_DICTIONARY = ELEVENLABS_CLIENT.pronunciation_dictionary.add_from_file(
-    name=PRONUNCIATION_DICTIONARY_NAME, file=PRONUNCIATION_FILE.read_text(), workspace_access="admin"
-)
+try:
+    PRONUNCIATION_DICTIONARY = ELEVENLABS_CLIENT.pronunciation_dictionary.add_from_file(
+        name=PRONUNCIATION_DICTIONARY_NAME, file=PRONUNCIATION_FILE.read_text(), workspace_access="admin"
+    )
+except elevenlabs.core.api_error.ApiError as e:
+    logging.warning("Unable to add pronunciation dictionary: %s", e)
 
 
 def generate_audio_file_from_text(text: str, path: pathlib.Path) -> None:
