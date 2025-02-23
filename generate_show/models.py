@@ -9,6 +9,7 @@ from typing import Callable, Coroutine, Type
 
 import pydantic
 import tqdm
+from PIL import Image, ImageDraw, ImageFont
 from typing_extensions import ParamSpec, TypeVar
 
 import generate_show.narration
@@ -276,50 +277,55 @@ class Episode(EpisodeOutline):
         if not composite_audio.exists():
             raise ValueError("Cannot create video without composite audio")
         background_file = output_dir / files.VIDEO_BACKGROUND_FILENAME
+        pre_image_file = output_dir / files.VIDEO_PREIMAGE_WITH_TEXT_FILENAME
 
         # Prepare the text with an escaped newline.
-        # Note: double backslashes are used to pass a literal '\n' to ffmpeg.
         text = f"{self.title}\n({lesson_reference})"
-        font_file = "Amiri-Bold.ttf"
 
-        # Construct the filter_complex string.
-        # The drawtext filter is used to overlay the text.
-        filter_complex = (
-            f"[0:v]scale=1920:1080,"
-            f"drawtext=fontfile={font_file}:text='{text}':"
-            f"fontcolor=white:fontsize=60:"
-            f"x=(w-text_w)/2:y=990-(text_h/2)[v]"
-        )
+        img = Image.open(background_file).convert("RGB")
+        img = img.resize((1920, 1080))
+
+        draw = ImageDraw.Draw(img)
+        font_file = "Amiri-Bold.ttf"  # ensure this is available on your system
+        font_size = 60
+        font = ImageFont.truetype(font_file, font_size)
+
+        bbox = draw.multiline_textbbox((0, 0), text, font=font)
+        text_width = bbox[2] - bbox[0]
+        text_height = bbox[3] - bbox[1]
+
+        # Position the text: center horizontally and vertically centered at y=990.
+        x = (1920 - text_width) / 2
+        y = 990 - (text_height / 2)
+
+        draw.multiline_text((x, y), text, fill="white", font=font, align="center")
+        img.save(pre_image_file)
 
         # Build the ffmpeg command.
         cmd = [
             "ffmpeg",
-            "-y",  # Overwrite output file without asking.
+            "-y",  # Overwrite output file.
+            "-framerate",
+            "1",  # Read input image at 1 fps (only one unique frame).
             "-loop",
-            "1",  # Loop the background image indefinitely.
+            "1",  # Loop the image indefinitely.
             "-i",
-            str(background_file),  # Input background image.
+            str(pre_image_file),  # Input pre-rendered image.
             "-i",
             str(composite_audio),  # Input audio file.
-            "-filter_complex",
-            filter_complex,  # Apply video filters.
-            "-map",
-            "[v]",  # Use the processed video stream.
-            "-map",
-            "1:a",  # Use the audio stream from the second input.
             "-c:v",
-            "libx264",  # Encode video with H.264.
+            "libx264",  # Use H.264 video codec.
             "-preset",
-            "ultrafast",  # Speed up encoding
+            "ultrafast",  # Optimize for speed.
             "-tune",
-            "stillimage",  # Optimize settings for still images
+            "stillimage",  # Tune for still images.
             "-r",
-            "24",  # Output frame rate (duplicate the single frame)
+            "24",  # Output frame rate (duplicates the static frame).
             "-c:a",
-            "aac",  # Audio codec
+            "aac",  # Audio codec.
             "-pix_fmt",
-            "yuv420p",  # Pixel format for compatibility
-            "-shortest",  # End video when the audio stream ends
+            "yuv420p",  # Pixel format for compatibility.
+            "-shortest",  # End when the audio ends.
             str(final_video),
         ]
 
