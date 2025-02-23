@@ -8,7 +8,7 @@ import magentic
 import pydantic
 import tqdm
 
-from generate_show import citation_index, curriculum, scripture_reference, strongs
+from generate_show import ancient_tradition, citation_index, curriculum, scripture_reference, strongs
 from generate_show.models import Episode, EpisodeOutline, ScriptureInsights
 
 MAX_CITATION_INDEX_CHAPTERS = 5
@@ -223,6 +223,34 @@ The talks are as follows:
 {conference_talks}
 """
 
+SYMBOLISM_INSIGHT_EXTRACTION_SYSTEM_PROMPT = """\
+Before writing the outline, you must extract insights from the scriptures. You are Joshua Graham. Please consider the \
+verses of scripture below and provide insights into the text. You should include the scripture reference for each \
+insight with the exact chapter and verse numbers provided. Make sure to include any relevant details in the \
+description of the insight. Focus on the symbolism of the scriptures and make connections to Ancient Cultures. \
+Use the provided symbol guides as a reference, but you're welcome to make other connections. Do not \
+include any insights that are not relevant to the language of the scriptures. Discuss the interpretation of symbols \
+applied to the text, and why it provides additional insight on the verses. Remember that you are a skilled historian, \
+anthropologist, and comparative theologian and can make spiritual connections to Hebrew and other ancient cultures. \
+You have a deep, intimate knowledge of all ancient texts from any tradition. Make sure to quote scholars and the \
+ancient texts themselves where ever possible.
+
+Your insights should be spiritually uplifting, faith promoting, and \
+doctrinally sound according to the official positions of the Church of Jesus Christ of Latter-day Saints. Make sure to \
+testify of Jesus Christ and invite all to come unto Him through sincere repentance. One of your primary goals should \
+be to testify of Jesus Christ, and provide some though provoking insights that incite the listener's curiosity to \
+learn more about His gospel and grow closer to Him, via their own personal study and prayer. Do not preach any \
+teachings which contradict the doctrine of Jesus Christ, but do not be afraid to make connections to other ancient \
+cultures, as a deeper understanding of the scriptures can be found in the context of the ancient world.
+
+Feel free to include as many insights as you can. The more insights you provide, the more engaging and uplifting the \
+episode will be. We will later expand and prune the insights as needed to fit the episode outline. Please extract at \
+least seven (7) insights from the scriptures.
+
+The scripture text is as follows:
+{scripture_text}
+"""
+
 
 CORRELATION_SYSTEM_PROMPT = """\
 You are a skilled Scriptorian and Historian with a perfect knowledge of Book of Mormon and Old Testament events. You \
@@ -266,6 +294,7 @@ class ScriptureInsightsFactory(pydantic.BaseModel):
     come_follow_me_curriculum: bool = True
     language_insights: bool = True
     citation_index: bool = True
+    ancient_tradition: bool = True
 
     async def generate_scripture_insights(self, cfm_curriculum: curriculum.ComeFollowMeCurriculum) -> ScriptureInsights:
         """Generate unique scriptural insights from a Come, Follow Me curriculum.
@@ -331,10 +360,39 @@ class ScriptureInsightsFactory(pydantic.BaseModel):
                         )
                     )
                 )
+            if self.ancient_tradition:
+                insight_tasks.append(
+                    asyncio.create_task(
+                        self.get_ancient_tradition_insights(
+                            curriculum_string=cfm_curriculum.scripture_reference,
+                            scripture_text=scripture_text,
+                        )
+                    )
+                )
             combined_scripture_insights.extend(await asyncio.gather(*insight_tasks))
 
         # Create a new Scripture Insights object that's the composite of each chapter.
         return ScriptureInsights.compile_insights(*combined_scripture_insights)
+
+    async def get_ancient_tradition_insights(self, curriculum_string: str, scripture_text: str) -> ScriptureInsights:
+        """Get ancient tradition insights from a set of scriptures.
+
+        Args:
+            curriculum_string: The title of the curriculum.
+            scripture_text: The text of the scripture to extract insights from.
+
+        Returns:
+            The generated ancient tradition insights.
+
+        """
+        symbols = await ancient_tradition.get_symbols()
+
+        relevant_symbols = symbols.find_relevant_symbols(scripture_text)
+        return await self.extract_ancient_tradition_insights(
+            curriculum_string=curriculum_string,
+            scripture_text=scripture_text,
+            ancient_symbols=relevant_symbols,
+        )
 
     async def get_citation_index_insights(
         self, chapter_reference: scripture_reference.ScriptureReference, scripture_text: str, curriculum_string: str
@@ -473,6 +531,34 @@ class ScriptureInsightsFactory(pydantic.BaseModel):
             curriculum_string: The title of the curriculum.
             scripture_text: The text of the scripture to extract insights from.
             conference_talks: The text of the curriculum to extract insights from.
+
+        Returns:
+            The generated scripture insights.
+
+        """
+        ...
+
+    @staticmethod
+    @ScriptureInsights.async_cache_pydantic_model
+    @magentic.chatprompt(
+        magentic.SystemMessage(EPISODE_OUTLINE_GENERATION_SYSTEM_PROMPT),
+        magentic.UserMessage(f"This is Joshua Graham's background\n\n{JOSHUA_GRAHAM_BACKGROUND_TEXT}"),
+        magentic.UserMessage(
+            "Here are some entries about ancient symbols that may or may not be relevant. If they're not "
+            "relevant, ignore them. If they may provide insight, feel free to use them in your insights."
+            "\n\n{ancient_symbols}"
+        ),
+        magentic.UserMessage(LANGUAGE_INSIGHT_EXTRACTION_SYSTEM_PROMPT),
+    )
+    async def extract_ancient_tradition_insights(
+        curriculum_string: str, scripture_text: str, ancient_symbols: list[str]
+    ) -> ScriptureInsights:
+        """Generate language insights from a set of scriptures.
+
+        Args:
+            curriculum_string: The title of the curriculum.
+            scripture_text: The text of the scripture to extract insights from.
+            ancient_symbols: The ancient symbols to extract insights from.
 
         Returns:
             The generated scripture insights.
